@@ -3,6 +3,7 @@
     "rootNamespace": "MeijiVinylSystem",
     "references": [
         "UnityEngine.UI",
+        "Unity.TextMeshPro",
         "VRC.Udon",
         "UdonSharp.Runtime",
         "JLChnToZ.VVMW",
