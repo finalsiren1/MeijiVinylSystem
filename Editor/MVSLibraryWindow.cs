@@ -24,6 +24,20 @@ namespace MeijiVinylSystem.Editor
         private string trackListAlbumId;
         private readonly List<int> filtered = new List<int>();
 
+        private static GUIStyle rowStyle;
+        private static GUIStyle RowStyle
+        {
+            get
+            {
+                if (rowStyle == null)
+                {
+                    rowStyle = new GUIStyle(EditorStyles.label) { padding = new RectOffset(6, 4, 2, 2) };
+                    rowStyle.onNormal.textColor = Color.white; // text on the selection highlight
+                }
+                return rowStyle;
+            }
+        }
+
         [MenuItem("Tools/Meiji Vinyl System/Library Editor", priority = 0)]
         public static void Open()
         {
@@ -48,6 +62,7 @@ namespace MeijiVinylSystem.Editor
                     data = AssetDatabase.LoadAssetAtPath<MVSLibraryData>(AssetDatabase.GUIDToAssetPath(guid));
             }
             Undo.undoRedoPerformed += Repaint;
+            wantsMouseMove = true; // hover highlight in the album list
         }
 
         private void OnDisable() => Undo.undoRedoPerformed -= Repaint;
@@ -147,12 +162,25 @@ namespace MeijiVinylSystem.Editor
                 bool selected = album.id == selectedId;
                 string label = album.DisplayName + (album.year > 0 ? $" ({album.year})" : "");
                 if (HasProblem(album)) label = "⚠ " + label;
-                if (GUILayout.Toggle(selected, label, "Label") && !selected)
+
+                Rect row = GUILayoutUtility.GetRect(GUIContent.none, RowStyle, GUILayout.ExpandWidth(true));
+                Event e = Event.current;
+                if (e.type == EventType.Repaint)
+                {
+                    if (selected)
+                        EditorGUI.DrawRect(row, EditorGUIUtility.isProSkin ? new Color(0.17f, 0.36f, 0.53f) : new Color(0.23f, 0.45f, 0.69f));
+                    else if (row.Contains(e.mousePosition))
+                        EditorGUI.DrawRect(row, new Color(0.5f, 0.5f, 0.5f, 0.12f));
+                    RowStyle.Draw(row, label, false, false, selected, false);
+                }
+                else if (e.type == EventType.MouseDown && e.button == 0 && row.Contains(e.mousePosition))
                 {
                     selectedId = album.id;
                     GUI.FocusControl(null);
+                    e.Use();
                 }
             }
+            if (Event.current.type == EventType.MouseMove) Repaint();
             EditorGUILayout.EndScrollView();
 
             using (new EditorGUILayout.HorizontalScope())
