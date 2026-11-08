@@ -448,6 +448,11 @@ namespace MeijiVinylSystem
             Broadcast("_MVSPlaybackChanged");
             // Only the record player owner advances multi-track records.
             if (!Networking.IsOwner(gameObject) || state != STATE_PLAYING || !IsMultiTrack()) return;
+            // VizVid 1.8.3+ also reports "end" when its GameObject is disabled (e.g. an area toggle):
+            // only a real end of track may advance the record.
+            if (!Utilities.IsValid(core) || !core.gameObject.activeInHierarchy) return;
+            float duration = core.Duration;
+            if (duration > 0f && !float.IsInfinity(duration) && core.Time < duration - 2f) return;
             int next = track + 1;
             if (next >= GetTrackCount())
             {
