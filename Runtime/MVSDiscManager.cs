@@ -28,6 +28,9 @@ namespace MeijiVinylSystem
         [SerializeField] private MVSPlayer[] players = new MVSPlayer[0];
         [Tooltip("Where records appear when spawned from the album menu.")]
         [SerializeField] private Transform spawnPoint;
+        [Tooltip("After spawning, the record glides this far out of the spawn point along its face (m). 0 = no motion.")]
+        [SerializeField] private float spawnPopDistance = 0.12f;
+        [SerializeField, Min(0.05f)] private float spawnPopTime = 0.45f;
 
         [Header("Records")]
         [SerializeField] private MVSDisc[] poolDiscs = new MVSDisc[0];
@@ -167,7 +170,7 @@ namespace MeijiVinylSystem
             if (existing >= 0)
             {
                 MVSDisc d = poolDiscs[existing];
-                if (!d.IsHeld() && !IsDiscInUse(existing)) d.TeleportTo(spawnPoint);
+                if (!d.IsHeld() && !IsDiscInUse(existing)) { d.TeleportTo(spawnPoint); d.PopOut(spawnPopDistance, spawnPopTime); }
                 idleTime[existing] = 0f;
                 return Result(SPAWN_ALREADY_OUT);
             }
@@ -193,6 +196,7 @@ namespace MeijiVinylSystem
             RequestSerialization();
             ApplyPool();
             poolDiscs[slot].TeleportTo(spawnPoint); // active now locally; ObjectSync carries the position
+            poolDiscs[slot].PopOut(spawnPopDistance, spawnPopTime);
             return Result(SPAWN_OK);
         }
 

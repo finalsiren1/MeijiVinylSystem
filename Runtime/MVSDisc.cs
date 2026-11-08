@@ -92,6 +92,20 @@ namespace MeijiVinylSystem
             else transform.SetPositionAndRotation(target.position, target.rotation);
         }
 
+        /// <summary>
+        /// After a teleport: glide out along the record's face normal (local up) by <paramref name="distance"/> m,
+        /// like sliding out of a sleeve. Owner only (VRCObjectSync carries the motion to everyone).
+        /// </summary>
+        public void PopOut(float distance, float duration)
+        {
+            if (distance == 0f || !Networking.IsOwner(gameObject)) return;
+            popTween.Kill();
+            Vector3 target = transform.position + transform.up * distance;
+            popTween = transform.TweenPosition(target, duration, VRCTweenEase.OutBack);
+        }
+
+        private VRCTweenHandle popTween;
+
         /// <summary>Display records: back to the original shelf spot. Takes ownership.</summary>
         public void ReturnHome()
         {
@@ -140,6 +154,7 @@ namespace MeijiVinylSystem
 
         public override void OnPickup()
         {
+            popTween.Kill();
             if (Utilities.IsValid(manager)) manager._NotifyDiscTouched(discId);
         }
 
