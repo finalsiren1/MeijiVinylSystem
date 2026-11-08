@@ -2,6 +2,7 @@ using TMPro;
 using UdonSharp;
 using UnityEngine;
 using UnityEngine.UI;
+using VRC.SDK3.Components;
 using VRC.SDKBase;
 
 namespace MeijiVinylSystem
@@ -49,6 +50,12 @@ namespace MeijiVinylSystem
         [SerializeField] private ScrollRect pageScroller;
         [Tooltip("How far the content must be pulled (canvas units) to flip a page.")]
         [SerializeField, Min(5)] private float dragThreshold = 60f;
+        [Tooltip("Optional: the page holder (with a CanvasGroup) that slides out/in on a page flip. " +
+                 "Put it under a RectMask2D (soft sides) so it never overlaps its neighbours.")]
+        [SerializeField] private RectTransform pageContent;
+        [SerializeField, Min(0)] private float slideDistance = 160f;
+        [SerializeField, Min(0.01f)] private float slideOutTime = 0.12f;
+        [SerializeField, Min(0.01f)] private float slideInTime = 0.22f;
 
         [Header("Search")]
         [SerializeField] private TMP_InputField searchField;
@@ -107,6 +114,11 @@ namespace MeijiVinylSystem
             for (int i = 0; i < players.Length; i++) if (Utilities.IsValid(players[i])) players[i]._AddListener(this);
             for (int i = 0; i < gridCells.Length; i++) if (Utilities.IsValid(gridCells[i])) { gridCells[i].browser = this; gridCells[i].slot = i; }
             for (int i = 0; i < listCells.Length; i++) if (Utilities.IsValid(listCells[i])) { listCells[i].browser = this; listCells[i].slot = i; }
+            if (Utilities.IsValid(pageContent))
+            {
+                pageHome = pageContent.localPosition;
+                pageGroup = pageContent.GetComponent<CanvasGroup>();
+            }
             started = true;
             SetNotice("", false);
             Refilter();
@@ -215,8 +227,32 @@ namespace MeijiVinylSystem
             else if (Mathf.Abs(x) < dragThreshold * 0.3f) dragLatched = false;
         }
 
-        public void _PrevPage() { if (page > 0) { page--; ShowPage(true); } }
-        public void _NextPage() { if (page < PageCount() - 1) { page++; ShowPage(true); } }
+        public void _PrevPage() { if (page > 0) { page--; FlipTo(-1); } }
+        public void _NextPage() { if (page < PageCount() - 1) { page++; FlipTo(1); } }
+
+        // ---- page slide (rigid page: slides away and fades at the soft mask edge, the next one slides in) ----
+        private Vector3 pageHome;
+        private CanvasGroup pageGroup;
+        private int slideDir;
+        private VRCTweenHandle slideMove, slideFade, slideTimer;
+
+        private void FlipTo(int dir)
+        {
+            if (!Utilities.IsValid(pageContent)) { ShowPage(true); return; }
+            slideDir = dir;
+            slideMove.Kill(); slideFade.Kill(); slideTimer.Kill();
+            slideMove = pageContent.TweenLocalPosition(pageHome - Vector3.right * (dir * slideDistance), slideOutTime, VRCTweenEase.InCubic);
+            if (Utilities.IsValid(pageGroup)) slideFade = pageGroup.TweenFade(0f, slideOutTime, VRCTweenEase.InCubic);
+            slideTimer = VRCTween.DelayedCall(this, nameof(_SlideIn), slideOutTime);
+        }
+
+        public void _SlideIn()
+        {
+            ShowPage(false);
+            pageContent.localPosition = pageHome + Vector3.right * (slideDir * slideDistance);
+            if (Utilities.IsValid(pageGroup)) { pageGroup.alpha = 0f; slideFade = pageGroup.TweenFade(1f, slideInTime, VRCTweenEase.OutCubic); }
+            slideMove = pageContent.TweenLocalPosition(pageHome, slideInTime, VRCTweenEase.OutCubic);
+        }
 
         private int PageSize()
         {

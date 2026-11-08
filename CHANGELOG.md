@@ -9,7 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Records are now **album sleeves**: the pickup is a sleeve (front + back cover); the vinyl only appears on the platter. While playing, the empty sleeve waits at the eject point (not pickupable); on eject it can be taken again. `MVS Sleeve` prefab + `MeijiVinylSystem/Record Sleeve` shader + sleeve mesh. Display sleeves can keep their own material (`applyLibraryArt` off).
 - Library albums take an optional 2x2 **sleeve texture** (front / back / label / vinyl). Atlases are built in three sets (front, back, label; sizes per set). The platter vinyl shows the real label art.
 - Spawning a new record puts the previous one away if nobody took it from the spawn point yet; a smaller pop-out distance.
-- Album browser: drag (pull) the album grid sideways to change page (`pageScroller`, `_OnPageDrag`).
+- Album browser: drag (pull) the album grid sideways to change page (`pageScroller`, `_OnPageDrag`). The page itself stays rigid (the ScrollRect drags an invisible proxy); a flip slides the page out and the next one in (`pageContent`, `slideDistance`, `slideOutTime`, `slideInTime`), clipped by a soft-sided RectMask2D.
 
 ### Added
 - **Side A / Side B** for multi-track records: `Has Side B` + `Side B starts at track` in the Library Editor; the side B label comes from the bottom-right quarter of the sleeve texture (4th atlas set `LabelB`).
