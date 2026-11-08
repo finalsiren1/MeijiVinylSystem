@@ -29,6 +29,7 @@ namespace MeijiVinylSystem
         public const byte STATE_EMPTY = 0;    // no record on the platter
         public const byte STATE_STARTING = 1; // record placed, waiting for the drop / needle animation
         public const byte STATE_PLAYING = 2;  // audio handed to VizVid (playing, paused, loading or ended)
+        public const byte STATE_FLIPPING = 3; // turning the record over (side A <-> B), audio stopped; no eject
 
         [Header("References")]
         [SerializeField] private MVSLibrary library;
@@ -40,6 +41,8 @@ namespace MeijiVinylSystem
         [SerializeField, Min(0)] private float actionCooldown = 3f;
         [Tooltip("Seconds from placing a record to the needle drop (audio starts). Match the turntable animation.")]
         [SerializeField, Min(0)] private float startDelay = 2.5f;
+        [Tooltip("Seconds the side flip takes (needle up, record turned over, needle down). Match the turntable.")]
+        [SerializeField, Min(0)] private float flipDelay = 4.5f;
 
         [Header("Local Booth (optional)")]
         [Tooltip("Set for a listening booth: only the person wearing the booth headphones can operate this player, " +
@@ -95,12 +98,17 @@ namespace MeijiVinylSystem
         public bool IsLoop() { return loop; }
         public float GetActionCooldown() { return actionCooldown; }
         public float GetStartDelay() { return startDelay; }
+        public float GetFlipDelay() { return flipDelay; }
+        public bool IsFlipping() { return state == STATE_FLIPPING; }
+        public bool HasSideB() { return Utilities.IsValid(library) && library.HasSideB(album); }
+        /// <summary>0 = side A, 1 = side B (of the current track).</summary>
+        public int GetSide() { return Utilities.IsValid(library) ? library.GetSide(album, track) : 0; }
 
         public bool IsMultiTrack() { return Utilities.IsValid(library) && library.IsMultiTrack(album); }
         public int GetTrackCount() { return Utilities.IsValid(library) ? library.GetTrackCount(album) : 0; }
         public string GetTrackTitle() { return Utilities.IsValid(library) ? library.GetTrackTitle(album, track) : ""; }
 
-        public bool IsLoading() { return state == STATE_STARTING || (state == STATE_PLAYING && Utilities.IsValid(core) && core.IsLoading); }
+        public bool IsLoading() { return state == STATE_STARTING || state == STATE_FLIPPING || (state == STATE_PLAYING && Utilities.IsValid(core) && core.IsLoading); }
         public bool IsPlaying() { return state == STATE_PLAYING && Utilities.IsValid(core) && core.IsPlaying; }
         public bool IsPaused() { return state == STATE_PLAYING && Utilities.IsValid(core) && core.IsPaused; }
         public float GetTime() { return state == STATE_PLAYING && Utilities.IsValid(core) ? core.Time : 0f; }
@@ -121,7 +129,7 @@ namespace MeijiVinylSystem
         }
 
         public bool CanInsert() { return CanControl() && state == STATE_EMPTY && GetCooldownRemaining() <= 0f; }
-        public bool CanEject() { return CanControl() && state != STATE_EMPTY && GetCooldownRemaining() <= 0f; }
+        public bool CanEject() { return CanControl() && state != STATE_EMPTY && state != STATE_FLIPPING && GetCooldownRemaining() <= 0f; }
 
         /// <summary>Booth players: only the headphone wearer may operate it. Global players: everyone.</summary>
         public bool CanControl() { return !Utilities.IsValid(booth) || booth.IsLocalWearer(); }
@@ -185,6 +193,16 @@ namespace MeijiVinylSystem
             CommitAndApply();
             return true;
         }
+
+        /// <summary>Turn the record over: first track of the other side (two-sided records only).</summary>
+        public void FlipSide()
+        {
+            if (!CanControl() || state != STATE_PLAYING || !HasSideB()) return;
+            int b = library.GetSideBStart(album);
+            ChangeTrack(GetSide() == 0 ? b : 0);
+        }
+
+        public void _FlipSide() { FlipSide(); }
 
         public void Next()
         {
@@ -298,7 +316,7 @@ namespace MeijiVinylSystem
         public void _OwnerStartPlayback()
         {
             if (!Networking.IsOwner(gameObject)) return;
-            if (state != STATE_STARTING) return;
+            if (state != STATE_STARTING && state != STATE_FLIPPING) return;
             if (pendingStartRevision != syncRevision) return; // superseded by a newer action
             pendingStartRevision = -1;
             state = STATE_PLAYING;
@@ -310,8 +328,19 @@ namespace MeijiVinylSystem
         private void ChangeTrack(int trackIndex)
         {
             TakeOwnership();
+            bool flip = HasSideB() && library.GetSide(album, trackIndex) != library.GetSide(album, track);
             track = trackIndex;
             syncRevision++;
+            if (flip)
+            {
+                // Lift the needle, turn the record over, then play (same delayed start as an insert).
+                if (Utilities.IsValid(core)) core.Stop();
+                state = STATE_FLIPPING;
+                pendingStartRevision = syncRevision;
+                CommitAndApply();
+                SendCustomEventDelayedSeconds(nameof(_OwnerStartPlayback), flipDelay);
+                return;
+            }
             CommitAndApply();
             PlayCurrentTrack();
         }
@@ -374,7 +403,7 @@ namespace MeijiVinylSystem
                 return;
             }
             // The previous owner left while a record was dropping: finish the job here.
-            if (state == STATE_STARTING)
+            if (state == STATE_STARTING || state == STATE_FLIPPING)
             {
                 pendingStartRevision = syncRevision;
                 _OwnerStartPlayback();

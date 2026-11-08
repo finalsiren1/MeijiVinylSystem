@@ -95,6 +95,9 @@ namespace MeijiVinylSystem.Editor
             var backRect = new Vector4[albumCount];
             var labelPage = new int[albumCount];
             var labelRect = new Vector4[albumCount];
+            var labelBPage = new int[albumCount];
+            var labelBRect = new Vector4[albumCount];
+            var sideB = new int[albumCount];
             var trackStart = new int[albumCount];
             var trackCount = new int[albumCount];
             var trackTitles = new string[trackTotal];
@@ -118,6 +121,10 @@ namespace MeijiVinylSystem.Editor
                 bool hasLabel = album.labelPage >= 0 && album.labelPage < data.labelPages.Count;
                 labelPage[a] = hasLabel ? album.labelPage : -1;
                 labelRect[a] = hasLabel ? album.labelRect : Vector4.zero;
+                bool hasLabelB = album.labelBPage >= 0 && album.labelBPage < data.labelBPages.Count;
+                labelBPage[a] = hasLabelB ? album.labelBPage : -1;
+                labelBRect[a] = hasLabelB ? album.labelBRect : Vector4.zero;
+                sideB[a] = album.hasSideB && album.tracks.Count >= 2 ? Mathf.Clamp(album.sideBStart, 1, album.tracks.Count - 1) : -1;
                 trackStart[a] = t;
                 trackCount[a] = album.tracks.Count;
                 foreach (MVSTrack track in album.tracks)
@@ -145,6 +152,10 @@ namespace MeijiVinylSystem.Editor
             library.labelPages = data.labelPages.ToArray();
             library.albumLabelPage = labelPage;
             library.albumLabelRect = labelRect;
+            library.labelBPages = data.labelBPages.ToArray();
+            library.albumLabelBPage = labelBPage;
+            library.albumLabelBRect = labelBRect;
+            library.albumSideBStart = sideB;
             library.albumTrackStart = trackStart;
             library.albumTrackCount = trackCount;
             library.trackTitles = trackTitles;

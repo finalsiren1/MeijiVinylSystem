@@ -48,6 +48,9 @@ namespace MeijiVinylSystem
         [SerializeField] private GameObject previousButton;
         [SerializeField] private GameObject nextButton;
         [SerializeField] private Image loopIcon;
+        [Tooltip("Shown for two-sided records: turns the record over.")]
+        [SerializeField] private GameObject flipButton;
+        [SerializeField] private TextMeshProUGUI flipLabel;
         [SerializeField] private Button ejectButton;
         [SerializeField] private TextMeshProUGUI ejectLabel;
 
@@ -58,6 +61,11 @@ namespace MeijiVinylSystem
 
         [Header("Texts")]
         [SerializeField] private string droppingText = "Dropping the needle";
+        [SerializeField] private string flippingText = "Turning the record over";
+        [SerializeField] private string sideAText = "Side A";
+        [SerializeField] private string sideBText = "Side B";
+        [SerializeField] private string flipToBText = "Flip to B";
+        [SerializeField] private string flipToAText = "Flip to A";
         [SerializeField] private string loadingText = "Loading";
         [SerializeField] private string pausedText = "Paused";
         [SerializeField] private string playingText = "Now Playing";
@@ -102,6 +110,7 @@ namespace MeijiVinylSystem
         public void _Previous() { if (Utilities.IsValid(player)) player.Previous(); }
         public void _Next() { if (Utilities.IsValid(player)) player.Next(); }
         public void _ToggleLoop() { if (Utilities.IsValid(player)) { player.ToggleLoop(); Refresh(false); } }
+        public void _FlipSide() { if (Utilities.IsValid(player)) { player.FlipSide(); Refresh(false); } }
         public void _Eject() { if (Utilities.IsValid(player)) { player.Eject(); Refresh(false); } }
 
         public void _OnSeek()
@@ -176,16 +185,20 @@ namespace MeijiVinylSystem
             }
 
             bool multi = player.IsMultiTrack();
+            bool twoSided = player.HasSideB();
             if (Utilities.IsValid(trackText))
             {
                 trackText.gameObject.SetActive(multi);
                 if (multi)
                 {
                     string t = string.Format(trackFormat, player.GetTrack() + 1, player.GetTrackCount());
+                    if (twoSided) t = (player.GetSide() == 0 ? sideAText : sideBText) + "  ·  " + t;
                     string name = player.GetTrackTitle();
                     trackText.text = name.Length > 0 ? t + "  ·  " + name : t;
                 }
             }
+            if (Utilities.IsValid(flipButton)) flipButton.SetActive(twoSided);
+            if (Utilities.IsValid(flipLabel)) flipLabel.text = player.GetSide() == 0 ? flipToBText : flipToAText;
             if (Utilities.IsValid(previousButton)) previousButton.SetActive(multi);
             if (Utilities.IsValid(nextButton)) nextButton.SetActive(multi);
             if (Utilities.IsValid(loopIcon)) loopIcon.color = player.IsLoop() ? textColor : textOffColor;
@@ -203,6 +216,7 @@ namespace MeijiVinylSystem
             if (Utilities.IsValid(controls)) controls.SetActive(player.CanControl());
             string s;
             if (player.IsBooth() && !player.CanControl()) s = string.Format(boothListenerFormat, player.GetListenerName());
+            else if (player.IsFlipping()) s = flippingText;
             else if (player.GetState() == MVSPlayer.STATE_STARTING) s = droppingText;
             else if (player.IsLoading()) s = loadingText;
             else if (player.IsPaused()) s = pausedText;

@@ -26,6 +26,7 @@ namespace MeijiVinylSystem.Editor
         private static readonly Rect FrontQ = new Rect(0f, 0.5f, 0.5f, 0.5f);
         private static readonly Rect BackQ = new Rect(0.5f, 0.5f, 0.5f, 0.5f);
         private static readonly Rect LabelQ = new Rect(0f, 0f, 0.5f, 0.5f);
+        private static readonly Rect LabelBQ = new Rect(0.5f, 0f, 0.5f, 0.5f);
 
         public static string PagesFolder(MVSLibraryData data)
         {
@@ -44,7 +45,7 @@ namespace MeijiVinylSystem.Editor
         {
             var sb = new StringBuilder("v2|");
             sb.Append(data.coverSize).Append('|').Append(data.backSize).Append('|').Append(data.labelSize).Append('|').Append(PageWidth).Append('|');
-            foreach (MVSAlbum a in data.albums) sb.Append(TexKey(a.cover)).Append(',').Append(TexKey(a.sleeve)).Append(';');
+            foreach (MVSAlbum a in data.albums) sb.Append(TexKey(a.cover)).Append(',').Append(TexKey(a.sleeve)).Append(',').Append(a.hasSideB).Append(';');
             using (var md5 = MD5.Create())
             {
                 var hex = new StringBuilder();
@@ -56,7 +57,7 @@ namespace MeijiVinylSystem.Editor
         public static bool IsUpToDate(MVSLibraryData data)
         {
             if (data.coverAtlasHash != ComputeHash(data)) return false;
-            foreach (var list in new[] { data.coverPages, data.backPages, data.labelPages })
+            foreach (var list in new[] { data.coverPages, data.backPages, data.labelPages, data.labelBPages })
                 foreach (Texture2D page in list) if (page == null) return false;
             return true;
         }
@@ -72,15 +73,17 @@ namespace MeijiVinylSystem.Editor
             var fronts = new List<Entry>();
             var backs = new List<Entry>();
             var labels = new List<Entry>();
+            var labelsB = new List<Entry>();
             foreach (MVSAlbum a in data.albums)
             {
-                a.coverPage = a.backPage = a.labelPage = -1;
-                a.coverRect = a.backRect = a.labelRect = Vector4.zero;
+                a.coverPage = a.backPage = a.labelPage = a.labelBPage = -1;
+                a.coverRect = a.backRect = a.labelRect = a.labelBRect = Vector4.zero;
                 if (a.sleeve != null)
                 {
                     fronts.Add(new Entry { album = a, tex = a.sleeve, src = FrontQ });
                     backs.Add(new Entry { album = a, tex = a.sleeve, src = BackQ });
                     labels.Add(new Entry { album = a, tex = a.sleeve, src = LabelQ });
+                    if (a.hasSideB) labelsB.Add(new Entry { album = a, tex = a.sleeve, src = LabelBQ });
                 }
                 else if (a.cover != null)
                     fronts.Add(new Entry { album = a, tex = a.cover, src = CenterSquare(a.cover) });
@@ -97,6 +100,7 @@ namespace MeijiVinylSystem.Editor
                 data.coverPages = BuildSet(data, fronts, data.coverSize, folder, "Front", 0);
                 data.backPages = BuildSet(data, backs, data.backSize, folder, "Back", 1);
                 data.labelPages = BuildSet(data, labels, data.labelSize, folder, "Label", 2);
+                data.labelBPages = BuildSet(data, labelsB, data.labelSize, folder, "LabelB", 3);
             }
             finally { EditorUtility.ClearProgressBar(); }
 
@@ -147,7 +151,8 @@ namespace MeijiVinylSystem.Editor
                     MVSAlbum a = entries[first + i].album;
                     if (kind == 0) { a.coverPage = p; a.coverRect = rect; }
                     else if (kind == 1) { a.backPage = p; a.backRect = rect; }
-                    else { a.labelPage = p; a.labelRect = rect; }
+                    else if (kind == 2) { a.labelPage = p; a.labelRect = rect; }
+                    else { a.labelBPage = p; a.labelBRect = rect; }
                 }
             }
             // stale pages (and v1 "_Covers_n" pages) of this set

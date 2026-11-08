@@ -240,6 +240,27 @@ namespace MeijiVinylSystem.Editor
             EnsureTrackList(album);
             trackList.DoLayoutList();
 
+            // Side A / B (multi-track records only)
+            if (album.tracks.Count >= 2)
+            {
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                {
+                    EditorGUI.BeginChangeCheck();
+                    bool hasB = EditorGUILayout.Toggle(new GUIContent("Has Side B", "The record is flipped between side A and side B (flip animation). Side B label = bottom-right of the Sleeve Texture."), album.hasSideB);
+                    int start = album.sideBStart;
+                    if (hasB)
+                        start = EditorGUILayout.IntSlider(new GUIContent("Side B starts at track", "First track (1-based) played on side B."), Mathf.Clamp(album.sideBStart + 1, 2, album.tracks.Count), 2, album.tracks.Count) - 1;
+                    if (EditorGUI.EndChangeCheck()) { Record("Side B"); album.hasSideB = hasB; album.sideBStart = start; }
+                    if (album.hasSideB)
+                    {
+                        int b = Mathf.Clamp(album.sideBStart, 1, album.tracks.Count - 1);
+                        EditorGUILayout.LabelField($"Side A: tracks 1–{b} · Side B: tracks {b + 1}–{album.tracks.Count}", EditorStyles.miniLabel);
+                    }
+                }
+            }
+            else if (album.hasSideB)
+                EditorGUILayout.HelpBox("Has Side B needs at least 2 tracks (it is ignored for this record).", MessageType.Info);
+
             EditorGUILayout.LabelField("Note (editor only)");
             EditorGUI.BeginChangeCheck();
             string note = EditorGUILayout.TextArea(album.note ?? "", GUILayout.MinHeight(36));
@@ -416,6 +437,8 @@ namespace MeijiVinylSystem.Editor
                 if (album.tracks.Count > 1 && string.IsNullOrWhiteSpace(album.tracks[i].title))
                     list.Add($"Track {i + 1}: multi-track records need track titles.");
             }
+            if (album.hasSideB && album.tracks.Count < 2) list.Add("Has Side B is on but the record has fewer than 2 tracks.");
+            if (album.hasSideB && album.sleeve == null) list.Add("Side B has no label art (needs a Sleeve Texture, bottom-right); side A's label is reused.");
             if (!string.IsNullOrWhiteSpace(album.note)) list.Add("Note: " + album.note);
             return list;
         }

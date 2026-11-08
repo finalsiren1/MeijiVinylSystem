@@ -42,6 +42,12 @@ namespace MeijiVinylSystem
         [Tooltip("Where the real record is parked while playing and where it pops out on eject (keep it outside the trigger).")]
         [SerializeField] private Transform ejectPoint;
 
+        [Header("Side flip (two-sided records)")]
+        [Tooltip("Seconds to turn the record over in the air. Whole flip = lowerTime + armMoveTime + dropTime + flipTime + dropTime + armMoveTime + lowerTime (keep the player's Flip Delay equal).")]
+        [SerializeField, Min(0.05f)] private float flipTime = 0.8f;
+        [Tooltip("Axis (record local space) the record turns around.")]
+        [SerializeField] private Vector3 flipAxis = Vector3.right;
+
         [Header("Tonearm")]
         [SerializeField] private Transform tonearm;
         [Tooltip("Swing (yaw) axis in the tonearm's local space.")]
@@ -74,10 +80,12 @@ namespace MeijiVinylSystem
         [SerializeField] private string labelProperty = "_LabelTex";
         [SerializeField] private string labelRectProperty = "_LabelRect";
 
-        private const int SEQ_NONE = 0, SEQ_INSERT = 1, SEQ_EJECT = 2;
+        private const int SEQ_NONE = 0, SEQ_INSERT = 1, SEQ_EJECT = 2, SEQ_FLIP = 3;
 
         private Quaternion platterBase, armBase;
         private Vector3 recordBasePos;
+        private Quaternion recordBaseRot;
+        private int shownSide;
         private float platterAngle, platterSpeed; // speed in deg/s
         private int seq = SEQ_NONE;
         private float seqTime;
@@ -93,7 +101,7 @@ namespace MeijiVinylSystem
         {
             if (Utilities.IsValid(platter)) platterBase = platter.localRotation;
             if (Utilities.IsValid(tonearm)) armBase = tonearm.localRotation;
-            if (Utilities.IsValid(recordVisual)) recordBasePos = recordVisual.transform.localPosition;
+            if (Utilities.IsValid(recordVisual)) { recordBasePos = recordVisual.transform.localPosition; recordBaseRot = recordVisual.transform.localRotation; }
             armYaw = restAngle;
             armLift = liftAngle;
             if (Utilities.IsValid(player)) player._AddListener(this);
@@ -135,6 +143,7 @@ namespace MeijiVinylSystem
             if (hasRecord)
             {
                 ParkDisc(player.GetDisc());
+                shownSide = player.GetSide();
                 ShowAlbum(player.GetAlbum());
                 StartSequence(SEQ_INSERT);
             }
@@ -145,7 +154,16 @@ namespace MeijiVinylSystem
             }
         }
 
-        public void _MVSStateChanged() { }
+        public void _MVSStateChanged()
+        {
+            if (!Utilities.IsValid(player)) return;
+            if (player.IsInstantApply()) { Snap(); return; }
+            if (player.IsFlipping() && seq != SEQ_FLIP)
+            {
+                ejectFromYaw = armYaw;
+                StartSequence(SEQ_FLIP);
+            }
+        }
         public void _MVSTrackChanged() { }
         public void _MVSLoopChanged() { }
         public void _MVSPlaybackChanged() { }
@@ -159,7 +177,7 @@ namespace MeijiVinylSystem
             seq = which;
             seqTime = 0f;
             needleSoundPlayed = false;
-            if (which == SEQ_EJECT) PlayClip(liftClip);
+            if (which == SEQ_EJECT || which == SEQ_FLIP) PlayClip(liftClip);
         }
 
         /// <summary>Jump straight to the state the player is in (late join, instant apply).</summary>
@@ -167,9 +185,11 @@ namespace MeijiVinylSystem
         {
             seq = SEQ_NONE;
             bool hasRecord = Utilities.IsValid(player) && player.HasRecord();
+            if (Utilities.IsValid(recordVisual)) recordVisual.transform.localRotation = recordBaseRot;
             if (hasRecord)
             {
                 ParkDisc(player.GetDisc());
+                shownSide = player.GetSide();
                 ShowAlbum(player.GetAlbum());
                 ApplyRecordVisual(true, 1f);
                 armYaw = PlayingYaw();
@@ -223,6 +243,36 @@ namespace MeijiVinylSystem
                 ApplyArm();
                 ApplyAnimator(false);
             }
+            else if (seq == SEQ_FLIP)
+            {
+                seqTime += dt;
+                float t = seqTime;
+                float liftT = Mathf.Clamp01(t / lowerTime); t -= lowerTime;
+                float armOutT = Mathf.Clamp01(t / armMoveTime); t -= armMoveTime;
+                float riseT = Mathf.Clamp01(t / dropTime); t -= dropTime;
+                float turnT = Mathf.Clamp01(t / flipTime); t -= flipTime;
+                float landT = Mathf.Clamp01(t / dropTime); t -= dropTime;
+                float armInT = Mathf.Clamp01(t / armMoveTime); t -= armMoveTime;
+                float lowerT = Mathf.Clamp01(t / lowerTime);
+
+                armLift = lowerT > 0f ? Mathf.Lerp(liftAngle, 0f, Smooth(lowerT)) : Mathf.Lerp(0f, liftAngle, Smooth(liftT));
+                armYaw = armInT > 0f ? Mathf.Lerp(restAngle, startAngle, Smooth(armInT)) : Mathf.Lerp(ejectFromYaw, restAngle, Smooth(armOutT));
+                float height = landT > 0f ? 1f - Smooth(landT) : Smooth(riseT);
+                ApplyRecordVisual(true, 1f - height);
+                if (Utilities.IsValid(recordVisual))
+                {
+                    // half way through the turn (record edge-on) the label switches to the new side
+                    if (turnT >= 0.5f && shownSide != player.GetSide()) { shownSide = player.GetSide(); ShowAlbum(player.GetAlbum()); }
+                    float angle = turnT >= 1f ? 0f : Smooth(turnT) * 180f;
+                    recordVisual.transform.localRotation = recordBaseRot * Quaternion.AngleAxis(angle, flipAxis);
+                }
+                if (lowerT >= 1f)
+                {
+                    if (!needleSoundPlayed) { needleSoundPlayed = true; PlayClip(needleDropClip); }
+                    seq = SEQ_NONE;
+                }
+                ApplyArm();
+            }
             else if (hasRecord && armLift <= 0f && player.GetState() == MVSPlayer.STATE_PLAYING)
             {
                 // Needle follows the song.
@@ -233,6 +283,7 @@ namespace MeijiVinylSystem
             // Platter: spin while a record is on it (after it landed) and not paused.
             bool spin = hasRecord && !(seq == SEQ_INSERT && seqTime < dropTime) && !player.IsPaused();
             if (seq == SEQ_EJECT && seqTime > lowerTime) spin = false;
+            if (seq == SEQ_FLIP && seqTime < lowerTime + armMoveTime + dropTime * 2f + flipTime) spin = false;
             float target = spin ? rpm * 6f : 0f; // rpm → deg/s
             float rate = rpm * 6f / (spin ? spinUpTime : spinDownTime);
             platterSpeed = Mathf.MoveTowards(platterSpeed, target, rate * dt);
@@ -287,11 +338,11 @@ namespace MeijiVinylSystem
                 block.SetVector(coverRectProperty, library.GetCoverRect(album));
             }
             else block.SetVector(coverRectProperty, Vector4.zero);
-            Texture2D label = Utilities.IsValid(library) ? library.GetLabelPage(album) : null;
+            Texture2D label = Utilities.IsValid(library) ? library.GetSideLabelPage(album, shownSide) : null;
             if (Utilities.IsValid(label))
             {
                 block.SetTexture(labelProperty, label);
-                block.SetVector(labelRectProperty, library.GetLabelRect(album));
+                block.SetVector(labelRectProperty, library.GetSideLabelRect(album, shownSide));
             }
             else block.SetVector(labelRectProperty, Vector4.zero);
             recordVisual.SetPropertyBlock(block);

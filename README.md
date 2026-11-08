@@ -60,3 +60,16 @@ music links and cover images you add.
 ## License
 
 [MIT](LICENSE) © 2026 Meiji_VRC
+
+## Sleeve texture
+
+One 2048x2048 image per album, split 2x2 (see `Templates/MVS_SleeveTemplate.png`):
+
+| Quarter | Used for |
+|---|---|
+| top-left | front cover (sleeve front + album menu) |
+| top-right | back cover |
+| bottom-left | label, side A (round, centre of the vinyl) |
+| bottom-right | label, side B (only for records with **Has Side B**; otherwise leave black) |
+
+Atlases are rebuilt automatically before Play/Build when artwork changes.

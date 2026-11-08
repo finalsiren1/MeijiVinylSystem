@@ -33,6 +33,11 @@ namespace MeijiVinylSystem
         [HideInInspector] public Texture2D[] labelPages = new Texture2D[0];
         [HideInInspector] public int[] albumLabelPage = new int[0];
         [HideInInspector] public Vector4[] albumLabelRect = new Vector4[0];
+        [HideInInspector] public Texture2D[] labelBPages = new Texture2D[0];
+        [HideInInspector] public int[] albumLabelBPage = new int[0];
+        [HideInInspector] public Vector4[] albumLabelBRect = new Vector4[0];
+        /// <summary>First track index of side B, -1 = single-sided.</summary>
+        [HideInInspector] public int[] albumSideBStart = new int[0];
         [HideInInspector] public int[] albumTrackStart = new int[0];
         [HideInInspector] public int[] albumTrackCount = new int[0];
 
@@ -116,6 +121,40 @@ namespace MeijiVinylSystem
             if (!IsValidAlbum(album) || album >= albumLabelPage.Length) return null;
             int page = albumLabelPage[album];
             return page >= 0 && page < labelPages.Length ? labelPages[page] : null;
+        }
+
+        /// <summary>First track of side B, or -1 when the record is single-sided.</summary>
+        public int GetSideBStart(int album)
+        {
+            if (!IsValidAlbum(album) || album >= albumSideBStart.Length) return -1;
+            return albumSideBStart[album];
+        }
+
+        public bool HasSideB(int album) { return GetSideBStart(album) > 0; }
+
+        /// <summary>0 = side A, 1 = side B.</summary>
+        public int GetSide(int album, int track)
+        {
+            int b = GetSideBStart(album);
+            return b > 0 && track >= b ? 1 : 0;
+        }
+
+        /// <summary>Label for a side; side B falls back to side A's label when it has none.</summary>
+        public Texture2D GetSideLabelPage(int album, int side)
+        {
+            if (side == 1 && IsValidAlbum(album) && album < albumLabelBPage.Length)
+            {
+                int page = albumLabelBPage[album];
+                if (page >= 0 && page < labelBPages.Length) return labelBPages[page];
+            }
+            return GetLabelPage(album);
+        }
+
+        public Vector4 GetSideLabelRect(int album, int side)
+        {
+            if (side == 1 && IsValidAlbum(album) && album < albumLabelBPage.Length && albumLabelBPage[album] >= 0)
+                return albumLabelBRect[album];
+            return GetLabelRect(album);
         }
 
         public Vector4 GetLabelRect(int album)

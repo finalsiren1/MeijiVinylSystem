@@ -28,6 +28,7 @@ namespace MeijiVinylSystem
         public List<Texture2D> coverPages = new List<Texture2D>();
         public List<Texture2D> backPages = new List<Texture2D>();
         public List<Texture2D> labelPages = new List<Texture2D>();
+        public List<Texture2D> labelBPages = new List<Texture2D>();
         [HideInInspector] public string coverAtlasHash = "";
 
         public MVSGenre FindGenre(string genreId)
@@ -78,7 +79,7 @@ namespace MeijiVinylSystem
         [Tooltip("Front cover image (used when there is no Sleeve Texture).")]
         public Texture2D cover;
         [Tooltip("Optional full sleeve texture laid out 2x2: front cover (top-left), back cover (top-right), " +
-                 "record label (bottom-left), vinyl (bottom-right, unused). Overrides Cover when set.")]
+                 "label side A (bottom-left), label side B (bottom-right, only used when Has Side B). Overrides Cover when set.")]
         public Texture2D sleeve;
         [HideInInspector] public int coverPage = -1;   // generated: atlas page, -1 = no cover
         [HideInInspector] public Vector4 coverRect;    // generated: atlas UV rect (x, y, width, height)
@@ -86,6 +87,12 @@ namespace MeijiVinylSystem
         [HideInInspector] public Vector4 backRect;
         [HideInInspector] public int labelPage = -1;
         [HideInInspector] public Vector4 labelRect;
+        [HideInInspector] public int labelBPage = -1;
+        [HideInInspector] public Vector4 labelBRect;
+        [Tooltip("Multi-track records only: the record has a side B (flip animation between sides).")]
+        public bool hasSideB;
+        [Tooltip("Index (0-based) of the first track on side B.")]
+        public int sideBStart = 1;
         public List<MVSTrack> tracks = new List<MVSTrack>();
         [Tooltip("Editor-only note (e.g. import warnings). Not baked.")]
         public string note;
