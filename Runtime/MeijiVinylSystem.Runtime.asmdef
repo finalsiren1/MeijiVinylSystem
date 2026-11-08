@@ -2,8 +2,11 @@
     "name": "MeijiVinylSystem.Runtime",
     "rootNamespace": "MeijiVinylSystem",
     "references": [
+        "UnityEngine.UI",
         "VRC.Udon",
-        "UdonSharp.Runtime"
+        "UdonSharp.Runtime",
+        "JLChnToZ.VVMW",
+        "JLChnToZ.VRC.Foundation"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
