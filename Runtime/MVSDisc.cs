@@ -39,6 +39,7 @@ namespace MeijiVinylSystem
 
         private int album = -1;
         private bool locked;
+        private bool parked;
         private MaterialPropertyBlock block;
 
         private void Start() { EnsureComponents(); }
@@ -56,6 +57,7 @@ namespace MeijiVinylSystem
         public int GetAlbum() { return album; }
         public int GetDiscId() { return discId; }
         public bool IsLocked() { return locked; }
+        public bool IsParked() { return parked; }
         public bool IsHeld() { return Utilities.IsValid(pickup) && pickup.IsHeld; }
 
         public VRCPlayerApi GetHolder() { return Utilities.IsValid(pickup) ? pickup.currentPlayer : null; }
@@ -113,6 +115,21 @@ namespace MeijiVinylSystem
                 pickup.pickupable = !value;
             }
         }
+
+        /// <summary>
+        /// Hides the record while a turntable shows its own copy on the platter (local, every client calls it
+        /// from the turntable events). Hidden = no renderer, no collider, not pickupable.
+        /// </summary>
+        public void SetParked(bool value)
+        {
+            parked = value;
+            EnsureComponents();
+            if (Utilities.IsValid(coverRenderer)) coverRenderer.enabled = !value;
+            if (Utilities.IsValid(discCollider)) discCollider.enabled = !value;
+            SetLocked(value);
+        }
+
+        public Renderer GetRenderer() { return coverRenderer; }
 
         private void TakeOwnership()
         {
