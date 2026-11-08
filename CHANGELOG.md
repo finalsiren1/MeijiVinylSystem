@@ -14,7 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 - **Side A / Side B** for multi-track records: `Has Side B` + `Side B starts at track` in the Library Editor; the side B label comes from the bottom-right quarter of the sleeve texture (4th atlas set `LabelB`).
 - Side flip animation on the turntable (needle up, arm back, record lifted and turned over, needle down; `flipTime`). New player state `STATE_FLIPPING` (no eject while flipping), `FlipSide()`; a track change that crosses sides flips automatically. Now Playing shows the side and a Flip button on two-sided records.
-- `Templates/MVS_SleeveTemplate.png`: 2048 sleeve texture template (front / back / label A / label B).
+- `Templates/MVS_SleeveTemplate.psd` (layered: Artwork + Guides) and `.png`: 2048 sleeve texture template (front / back / label A / label B).
 - `MVSUIProximity`: world UI pops in near the player and fades out further away (canvas + collider off while hidden).
 
 ### Fixed

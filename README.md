@@ -63,7 +63,7 @@ music links and cover images you add.
 
 ## Sleeve texture
 
-One 2048x2048 image per album, split 2x2 (see `Templates/MVS_SleeveTemplate.png`):
+One 2048x2048 image per album, split 2x2. Templates: `Templates/MVS_SleeveTemplate.psd` (layered: put your art in the *Artwork* group, hide the *Guides* group before exporting; Unity can also use the .psd directly, it imports the visible layers) and `Templates/MVS_SleeveTemplate.png`:
 
 | Quarter | Used for |
 |---|---|
