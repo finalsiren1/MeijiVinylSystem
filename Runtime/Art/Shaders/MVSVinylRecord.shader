@@ -1,11 +1,13 @@
 // Procedural vinyl record: black grooved disc with the album cover printed on the center label.
 // Expects planar UVs over the record face (0..1, center at 0.5) - see the MVS_VinylDisc mesh.
-// The cover is set per record with a MaterialPropertyBlock (_CoverTex).
+// The cover comes from the library cover atlas, set per record with a MaterialPropertyBlock:
+// _CoverTex = atlas page, _CoverRect = (x, y, width, height) UV rect of the cover; width <= 0 = blank label.
 Shader "MeijiVinylSystem/Vinyl Record"
 {
     Properties
     {
-        [NoScaleOffset] _CoverTex ("Cover (label)", 2D) = "white" {}
+        [NoScaleOffset] _CoverTex ("Cover Atlas Page", 2D) = "white" {}
+        _CoverRect ("Cover UV Rect (x, y, w, h)", Vector) = (0, 0, 0, 0)
         _LabelRadius ("Label Radius (0-1 of record)", Range(0.1, 0.9)) = 0.36
         _HoleRadius ("Spindle Hole Radius", Range(0, 0.1)) = 0.025
         _VinylColor ("Vinyl Color", Color) = (0.035, 0.035, 0.04, 1)
@@ -28,7 +30,7 @@ Shader "MeijiVinylSystem/Vinyl Record"
 
         sampler2D _CoverTex;
         sampler2D _BlankLabel;
-        float4 _CoverTex_TexelSize;
+        float4 _CoverRect;
         half _LabelRadius, _HoleRadius, _VinylSmoothness, _GrooveDensity, _GrooveStrength, _RimWidth, _LabelSmoothness;
         fixed4 _VinylColor;
 
@@ -41,8 +43,9 @@ Shader "MeijiVinylSystem/Vinyl Record"
 
             // Label: map the label circle to the full cover texture.
             float2 labelUV = p / (_LabelRadius * 2.0) + 0.5;
-            bool hasCover = _CoverTex_TexelSize.z > 4; // the default "white" texture is 4x4
-            fixed3 label = hasCover ? tex2D(_CoverTex, labelUV).rgb : tex2D(_BlankLabel, labelUV).rgb;
+            bool hasCover = _CoverRect.z > 0;
+            float2 atlasUV = _CoverRect.xy + saturate(labelUV) * _CoverRect.zw;
+            fixed3 label = hasCover ? tex2D(_CoverTex, atlasUV).rgb : tex2D(_BlankLabel, labelUV).rgb;
 
             // Grooves: fine concentric rings + a couple of wider track gaps.
             float grooves = 0.5 + 0.5 * sin(r * _GrooveDensity * 6.2831853);

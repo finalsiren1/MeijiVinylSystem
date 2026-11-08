@@ -74,6 +74,9 @@ namespace MeijiVinylSystem.Editor
                 return false;
             }
 
+            // Covers are baked from the atlas (rebuilt here only when a cover changed).
+            if (!Application.isPlaying) MVSCoverAtlasBuilder.Build(data);
+
             int albumCount = data.albums.Count;
             int trackTotal = 0;
             foreach (MVSAlbum album in data.albums) trackTotal += album.tracks.Count;
@@ -86,7 +89,8 @@ namespace MeijiVinylSystem.Editor
             var artists = new string[albumCount];
             var years = new int[albumCount];
             var genres = new int[albumCount];
-            var covers = new Texture2D[albumCount];
+            var coverPage = new int[albumCount];
+            var coverRect = new Vector4[albumCount];
             var trackStart = new int[albumCount];
             var trackCount = new int[albumCount];
             var trackTitles = new string[trackTotal];
@@ -101,7 +105,9 @@ namespace MeijiVinylSystem.Editor
                 artists[a] = album.artist ?? "";
                 years[a] = album.year;
                 genres[a] = data.GenreIndex(album.genreId);
-                covers[a] = album.cover;
+                bool hasCover = album.cover != null && album.coverPage >= 0 && album.coverPage < data.coverPages.Count;
+                coverPage[a] = hasCover ? album.coverPage : -1;
+                coverRect[a] = hasCover ? album.coverRect : Vector4.zero;
                 trackStart[a] = t;
                 trackCount[a] = album.tracks.Count;
                 foreach (MVSTrack track in album.tracks)
@@ -120,7 +126,9 @@ namespace MeijiVinylSystem.Editor
             library.albumArtists = artists;
             library.albumYears = years;
             library.albumGenres = genres;
-            library.albumCovers = covers;
+            library.coverPages = data.coverPages.ToArray();
+            library.albumCoverPage = coverPage;
+            library.albumCoverRect = coverRect;
             library.albumTrackStart = trackStart;
             library.albumTrackCount = trackCount;
             library.trackTitles = trackTitles;

@@ -26,6 +26,7 @@ namespace MeijiVinylSystem
         [Tooltip("Renderer whose material has the cover texture property (MeijiVinylSystem/Vinyl Record shader).")]
         [SerializeField] private Renderer coverRenderer;
         [SerializeField] private string coverProperty = "_CoverTex";
+        [SerializeField] private string coverRectProperty = "_CoverRect";
 
         [Header("Components (auto-filled when empty)")]
         [SerializeField] private VRCPickup pickup;
@@ -59,15 +60,20 @@ namespace MeijiVinylSystem
 
         public VRCPlayerApi GetHolder() { return Utilities.IsValid(pickup) ? pickup.currentPlayer : null; }
 
-        /// <summary>Shows the album's cover (or a blank label for -1). Local only.</summary>
-        public void SetAlbum(int albumIndex, Texture2D cover)
+        /// <summary>Shows the album's cover from the library cover atlas (blank label when none). Local only.</summary>
+        public void SetAlbum(int albumIndex, MVSLibrary library)
         {
             album = albumIndex;
             if (!Utilities.IsValid(coverRenderer)) return;
             if (block == null) block = new MaterialPropertyBlock();
             coverRenderer.GetPropertyBlock(block);
-            if (Utilities.IsValid(cover)) block.SetTexture(coverProperty, cover);
-            else block.Clear();
+            Texture2D page = Utilities.IsValid(library) ? library.GetCoverPage(albumIndex) : null;
+            if (Utilities.IsValid(page))
+            {
+                block.SetTexture(coverProperty, page);
+                block.SetVector(coverRectProperty, library.GetCoverRect(albumIndex));
+            }
+            else block.SetVector(coverRectProperty, Vector4.zero);
             coverRenderer.SetPropertyBlock(block);
         }
 

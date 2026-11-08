@@ -24,7 +24,9 @@ namespace MeijiVinylSystem
         [HideInInspector] public string[] albumArtists = new string[0];
         [HideInInspector] public int[] albumYears = new int[0];
         [HideInInspector] public int[] albumGenres = new int[0];
-        [HideInInspector] public Texture2D[] albumCovers = new Texture2D[0];
+        [HideInInspector] public Texture2D[] coverPages = new Texture2D[0];
+        [HideInInspector] public int[] albumCoverPage = new int[0];
+        [HideInInspector] public Vector4[] albumCoverRect = new Vector4[0];
         [HideInInspector] public int[] albumTrackStart = new int[0];
         [HideInInspector] public int[] albumTrackCount = new int[0];
 
@@ -67,7 +69,26 @@ namespace MeijiVinylSystem
             return genre >= 0 && genre < genreNames.Length ? genreNames[genre] : "";
         }
 
-        public Texture2D GetCover(int album) { return IsValidAlbum(album) ? albumCovers[album] : null; }
+        /// <summary>
+        /// Cover atlas page for this album, or null when it has no cover. Use with <see cref="GetCoverRect"/>:
+        /// UI: <c>rawImage.texture = GetCoverPage(a); rawImage.uvRect = new Rect(r.x, r.y, r.z, r.w)</c>;
+        /// shaders: sample <c>rect.xy + uv * rect.zw</c>.
+        /// </summary>
+        public Texture2D GetCoverPage(int album)
+        {
+            if (!IsValidAlbum(album)) return null;
+            int page = albumCoverPage[album];
+            return page >= 0 && page < coverPages.Length ? coverPages[page] : null;
+        }
+
+        /// <summary>Atlas UV rect (x, y, width, height); zero when the album has no cover.</summary>
+        public Vector4 GetCoverRect(int album)
+        {
+            if (!IsValidAlbum(album) || albumCoverPage[album] < 0) return Vector4.zero;
+            return albumCoverRect[album];
+        }
+
+        public bool HasCover(int album) { return IsValidAlbum(album) && albumCoverPage[album] >= 0; }
 
         /// <summary>"Artist - Title", or just the title when the artist is empty.</summary>
         public string GetDisplayName(int album)

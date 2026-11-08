@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `MVSDiscManager` (UdonSharp, Manual sync): record pool (synced album per slot), spawn at a spawn point, recycle oldest idle record above a soft limit, hard limit warning, idle auto-return (pool → put away, display → shelf spot), Reset All (pool records only) and a separate ResetDisplayRecords, "in use" lookup across record players. Event `_MVSDiscsChanged`.
 - Package art (no third-party assets): procedural 12" record mesh, `MeijiVinylSystem/Vinyl Record` shader (grooves + cover on the label), `MVS Record` prefab. `Tools > Meiji Vinyl System > Dev > Rebuild Record Assets`.
 - Disc manager inspector: Create Pool Records, Collect Display Records.
+- Cover atlas: covers are packed into 4096-wide PNG pages (default 256 px cells, ASTC 6x6 on Android/iOS) next to the library asset and rebuilt automatically before Play/Build when covers change. `MVSLibrary.GetCoverPage` / `GetCoverRect` / `HasCover` replace raw cover textures; records and UI sample the atlas (`_CoverRect`, `RawImage.uvRect`). Library Editor Check tab: cover size + rebuild.
 - `MVSDebugPanel` (UdonSharp): developer test panel for `MVSPlayer` and `MVSDiscManager`.
 - VizVid (`JLChnToZ.VVMW`) is now a required dependency of the runtime assembly.
 - Assembly definitions: `MeijiVinylSystem.Runtime` (+ U# Assembly Definition) and `MeijiVinylSystem.Editor`.

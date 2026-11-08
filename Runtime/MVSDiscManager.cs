@@ -90,7 +90,7 @@ namespace MeijiVinylSystem
                 d.discId = n + i;
                 displayHome[i] = d.transform.position;
                 int album = Utilities.IsValid(library) ? library.FindAlbum(d.fixedAlbumId) : -1;
-                d.SetAlbum(album, Utilities.IsValid(library) ? library.GetCover(album) : null);
+                d.SetAlbum(album, library);
             }
             ApplyPool();
         }
@@ -345,7 +345,7 @@ namespace MeijiVinylSystem
                 {
                     activeCount++;
                     if (d.GetAlbum() != album)
-                        d.SetAlbum(album, Utilities.IsValid(library) ? library.GetCover(album) : null);
+                        d.SetAlbum(album, library);
                 }
                 if (d.gameObject.activeSelf != active) d.gameObject.SetActive(active);
             }

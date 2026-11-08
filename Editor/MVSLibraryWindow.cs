@@ -354,6 +354,40 @@ namespace MeijiVinylSystem.Editor
                 }
             }
             EditorGUILayout.EndScrollView();
+            DrawCoverAtlas();
+        }
+
+        private static readonly int[] CoverSizes = { 128, 256, 512 };
+        private static readonly string[] CoverSizeNames = { "128 px", "256 px (recommended)", "512 px" };
+
+        private void DrawCoverAtlas()
+        {
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                EditorGUILayout.LabelField("Cover Atlas", EditorStyles.boldLabel);
+                EditorGUI.BeginChangeCheck();
+                int size = EditorGUILayout.IntPopup("Cover Size", data.coverSize, CoverSizeNames, CoverSizes);
+                if (EditorGUI.EndChangeCheck()) { Record("Cover Size"); data.coverSize = size; }
+
+                bool upToDate = MVSCoverAtlasBuilder.IsUpToDate(data);
+                int pages = data.coverPages.Count;
+                EditorGUILayout.LabelField(upToDate
+                        ? $"Up to date · {pages} page(s) in {MVSCoverAtlasBuilder.PagesFolder(data)}"
+                        : "Out of date (covers changed). Rebuilds automatically before Play / Build.",
+                    EditorStyles.miniLabel);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    for (int i = 0; i < pages; i++)
+                        if (data.coverPages[i] != null && GUILayout.Button($"Page {i}", EditorStyles.miniButton, GUILayout.Width(60)))
+                            EditorGUIUtility.PingObject(data.coverPages[i]);
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button(upToDate ? "Rebuild" : "Build Now", GUILayout.Width(90)))
+                    {
+                        MVSCoverAtlasBuilder.Build(data, true);
+                        MVSLibraryBaker.BakeAllUsing(data);
+                    }
+                }
+            }
         }
 
         // ---- Helpers ---------------------------------------------------------------------------

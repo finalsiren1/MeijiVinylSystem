@@ -17,6 +17,13 @@ namespace MeijiVinylSystem
         public List<MVSGenre> genres = new List<MVSGenre>();
         public List<MVSAlbum> albums = new List<MVSAlbum>();
 
+        [Header("Cover Atlas (generated)")]
+        [Tooltip("Pixel size of one cover in the atlas. 256 is plenty for record labels and menu thumbnails.")]
+        public int coverSize = 256;
+        [Tooltip("Generated atlas pages. Rebuilt automatically when covers change (before Play / Build).")]
+        public List<Texture2D> coverPages = new List<Texture2D>();
+        [HideInInspector] public string coverAtlasHash = "";
+
         public MVSGenre FindGenre(string genreId)
         {
             if (string.IsNullOrEmpty(genreId)) return null;
@@ -63,6 +70,8 @@ namespace MeijiVinylSystem
         public int year;
         public string genreId;
         public Texture2D cover;
+        [HideInInspector] public int coverPage = -1;   // generated: atlas page, -1 = no cover
+        [HideInInspector] public Vector4 coverRect;    // generated: atlas UV rect (x, y, width, height)
         public List<MVSTrack> tracks = new List<MVSTrack>();
         [Tooltip("Editor-only note (e.g. import warnings). Not baked.")]
         public string note;
