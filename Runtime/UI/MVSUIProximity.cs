@@ -28,8 +28,13 @@ namespace MeijiVinylSystem
         [Tooltip("Scale it pops in from (1 = no scale motion).")]
         [SerializeField, Range(0.5f, 1f)] private float popScale = 0.94f;
         [SerializeField, Min(0.05f)] private float checkInterval = 0.25f;
+        [Tooltip("Off: ignore the distance and show whenever allowed (see SetAllowed).")]
+        [SerializeField] private bool useDistance = true;
+        [Tooltip("Initial gate; another behaviour can change it with SetAllowed (e.g. Now Playing: only while a record is on).")]
+        [SerializeField] private bool allowed = true;
 
         private bool shown;
+        private bool near;
         private Vector3 baseScale;
         private VRCTweenHandle fadeTween, scaleTween, hideTimer;
 
@@ -37,6 +42,8 @@ namespace MeijiVinylSystem
         {
             if (!Utilities.IsValid(center)) center = transform;
             baseScale = transform.localScale;
+            near = !useDistance;
+            shown = true; // force the instant hide below to run fully
             SetVisible(false, true);
             SendCustomEventDelayedSeconds(nameof(_Check), 0.5f);
         }
@@ -46,9 +53,27 @@ namespace MeijiVinylSystem
             SendCustomEventDelayedSeconds(nameof(_Check), checkInterval);
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return;
-            float d = Vector3.Distance(local.GetPosition(), center.position);
-            if (!shown && d <= showDistance) SetVisible(true, false);
-            else if (shown && d > hideDistance) SetVisible(false, false);
+            if (useDistance)
+            {
+                float d = Vector3.Distance(local.GetPosition(), center.position);
+                if (!near && d <= showDistance) near = true;
+                else if (near && d > hideDistance) near = false;
+            }
+            else near = true;
+            UpdateVisible();
+        }
+
+        /// <summary>Gate the UI (it shows only when allowed and, with useDistance, the player is near).</summary>
+        public void SetAllowed(bool value)
+        {
+            allowed = value;
+            UpdateVisible();
+        }
+
+        private void UpdateVisible()
+        {
+            bool want = allowed && near;
+            if (want != shown) SetVisible(want, false);
         }
 
         public bool IsShown() { return shown; }

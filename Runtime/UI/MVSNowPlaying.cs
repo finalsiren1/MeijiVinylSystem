@@ -48,6 +48,8 @@ namespace MeijiVinylSystem
         [SerializeField] private GameObject previousButton;
         [SerializeField] private GameObject nextButton;
         [SerializeField] private Image loopIcon;
+        [Tooltip("Optional: pops the panel in only while a record is on the turntable.")]
+        [SerializeField] private MVSUIProximity visibility;
         [Tooltip("Shown for two-sided records: turns the record over.")]
         [SerializeField] private GameObject flipButton;
         [SerializeField] private TextMeshProUGUI flipLabel;
@@ -149,8 +151,11 @@ namespace MeijiVinylSystem
         {
             if (!Utilities.IsValid(player)) return;
             bool has = player.HasRecord();
-            if (Utilities.IsValid(emptyState)) emptyState.SetActive(!has);
-            if (Utilities.IsValid(recordState)) recordState.SetActive(has);
+            // With a visibility gate the panel simply fades away on eject (keeps the last record while fading).
+            bool gated = Utilities.IsValid(visibility);
+            if (gated) visibility.SetAllowed(has);
+            if (Utilities.IsValid(emptyState)) emptyState.SetActive(!has && !gated);
+            if (Utilities.IsValid(recordState) && (has || !gated)) recordState.SetActive(has);
             RefreshCooldown();
             if (!has) { shownAlbum = -1; return; }
 

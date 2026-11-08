@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Side flip animation on the turntable (needle up, arm back, record lifted and turned over, needle down; `flipTime`). New player state `STATE_FLIPPING` (no eject while flipping), `FlipSide()`; a track change that crosses sides flips automatically. Now Playing shows the side and a Flip button on two-sided records.
 - `Templates/MVS_SleeveTemplate.psd` (layered: Artwork + Guides) and `.png`: 2048 sleeve texture template (front / back / label A / label B).
 - `MVSUIProximity`: world UI pops in near the player and fades out further away (canvas + collider off while hidden).
+- `MVSUIProximity.SetAllowed` + `useDistance`: gate a panel by state. `MVSNowPlaying.visibility`: the Now Playing panel pops in only while a record is on the turntable (no empty "no record" panel).
 
 ### Fixed
 - Multi-track records no longer skip a track when the VizVid object is disabled (VizVid 1.8.3+ reports a video end on disable).
