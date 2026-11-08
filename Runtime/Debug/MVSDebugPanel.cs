@@ -14,6 +14,7 @@ namespace MeijiVinylSystem
     public class MVSDebugPanel : UdonSharpBehaviour
     {
         [SerializeField] private MVSPlayer player;
+        [SerializeField] private MVSDiscManager discs;
         [SerializeField] private Text albumText;
         [SerializeField] private Text statusText;
         [SerializeField, Min(0.05f)] private float refreshInterval = 0.25f;
@@ -24,6 +25,7 @@ namespace MeijiVinylSystem
         private void Start()
         {
             if (Utilities.IsValid(player)) player._AddListener(this);
+            if (Utilities.IsValid(discs)) discs._AddListener(this);
             RefreshAlbum();
         }
 
@@ -49,12 +51,24 @@ namespace MeijiVinylSystem
             RefreshAlbum();
         }
 
+        // ---- Records ----
+        public void _Spawn()
+        {
+            if (!Utilities.IsValid(discs)) return;
+            int r = discs.Spawn(selected);
+            if (r == MVSDiscManager.SPAWN_LIMIT) Debug.Log("[MVS Debug] Spawn refused: record limit reached, press Reset All.");
+        }
+
+        public void _ResetAll() { if (Utilities.IsValid(discs)) discs.ResetAll(); }
+        public void _MVSDiscsChanged() { RefreshStatus(); }
+
         // ---- Player actions ----
         public void _Insert()
         {
             if (!Utilities.IsValid(player)) return;
-            // Debug panel has no physical record; use disc id 0.
-            if (!player.InsertRecord(selected, 0)) Debug.Log("[MVS Debug] Insert refused (busy or cooldown).");
+            // Without a turntable trigger: use the spawned pool record of this album if there is one.
+            int disc = Utilities.IsValid(discs) ? discs.FindPoolDiscWithAlbum(selected) : -1;
+            if (!player.InsertRecord(selected, disc)) Debug.Log("[MVS Debug] Insert refused (busy or cooldown).");
         }
 
         public void _Eject()
@@ -112,6 +126,11 @@ namespace MeijiVinylSystem
                 if (player.IsMultiTrack())
                     s += "\nTrack " + (player.GetTrack() + 1) + "/" + player.GetTrackCount() + ": " + player.GetTrackTitle();
                 s += "\nTime: " + FormatTime(player.GetTime()) + " / " + FormatTime(player.GetDuration());
+            }
+            if (Utilities.IsValid(discs))
+            {
+                s += "\nRecords out: " + discs.GetActiveCount() + "/" + discs.GetPoolSize() + " (recycle above " + discs.GetSoftLimit() + ")";
+                if (discs.IsAtLimit()) s += "  LIMIT - press Reset All";
             }
             float cd = player.GetCooldownRemaining();
             if (cd > 0f) s += "\nCooldown: " + cd.ToString("0.0") + " s";
