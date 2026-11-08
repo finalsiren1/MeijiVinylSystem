@@ -3,8 +3,8 @@
 A vinyl record player system for VRChat worlds. Pick a record from a menu or a shelf, drop it on
 the turntable, and everyone in the instance hears the same song in sync (late joiners included).
 
-> **Status: early development (v0.1.0).** The package currently contains only the project scaffold.
-> Features below are planned, not shipped yet.
+> **Status: early development.** Available now: the album library (data asset, Library Editor window,
+> Udon-readable `MVSLibrary`). Everything else below is planned.
 
 ## Planned features
 
@@ -35,7 +35,15 @@ the turntable, and everyone in the instance hears the same song in sync (late jo
 2. Import `MeijiVinylSystem_vX.Y.Z.unitypackage` from the [Releases](../../releases) page.
 3. The package installs to `Assets/MeijiVinylSystem/`.
 
-Setup instructions will be added as features land.
+## Quick start: library
+
+1. `Create > Meiji Vinyl System > Library` to make a library asset.
+2. `Tools > Meiji Vinyl System > Library Editor` (or double-click the asset) to add genres and albums.
+   Each album has one or more tracks (title + URL); records with 2+ tracks get Next / Previous.
+3. Click **Add Library to Scene**. This creates an `MVS Library` object (UdonSharp `MVSLibrary` +
+   editor-only `MVSLibrarySource`). The data is baked into the scene automatically before Play Mode
+   and before every VRChat build, or manually with **Bake Now**.
+4. Other MVS components read albums through `MVSLibrary` by index or by stable album id.
 
 ## Building the package (maintainers)
 
