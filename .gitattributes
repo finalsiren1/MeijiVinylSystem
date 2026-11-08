@@ -1,0 +1,24 @@
+# Normalize text files to LF in the repo
+* text=auto eol=lf
+
+# Unity YAML assets: never merge automatically
+*.unity    text eol=lf merge=unityyamlmerge
+*.prefab   text eol=lf merge=unityyamlmerge
+*.asset    text eol=lf merge=unityyamlmerge
+*.mat      text eol=lf merge=unityyamlmerge
+*.anim     text eol=lf merge=unityyamlmerge
+*.controller text eol=lf merge=unityyamlmerge
+*.meta     text eol=lf
+
+# Binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.psd  binary
+*.tga  binary
+*.exr  binary
+*.fbx  binary
+*.mp3  binary
+*.wav  binary
+*.ogg  binary
+*.unitypackage binary

@@ -1,0 +1,13 @@
+# This repository is the package folder itself (Assets/MeijiVinylSystem).
+# Keep all .meta files: they hold the GUIDs that scenes and prefabs reference.
+
+# Exported packages are build output (they go to <ProjectRoot>/Exports anyway)
+*.unitypackage
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.vs/
+.idea/
