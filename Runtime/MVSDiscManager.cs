@@ -8,6 +8,7 @@ namespace MeijiVinylSystem
     /// Owns every <see cref="MVSDisc"/> in the scene: the spawnable record pool and the display records.
     ///
     /// Synced (Manual, owner writes): for each pool slot, which album it shows (-1 = put away) and when it was spawned.
+    /// Reset All affects pool records only; display records are separate (idle return / ResetDisplayRecords).
     /// Housekeeping (owner only, 1 Hz): records left alone for <see cref="idleReturnSeconds"/> go back
     /// (pool → put away, display → shelf spot). Records that are held or sitting in a player are never touched.
     ///
@@ -195,7 +196,10 @@ namespace MeijiVinylSystem
             return Result(SPAWN_OK);
         }
 
-        /// <summary>Puts every pool record away and sends display records home, except records sitting in a player.</summary>
+        /// <summary>
+        /// Puts every POOL record away (menu records), except records sitting in a player.
+        /// Display records are not affected; they return on their own when idle (or use <see cref="ResetDisplayRecords"/>).
+        /// </summary>
         public void ResetAll()
         {
             Initialize();
@@ -207,16 +211,24 @@ namespace MeijiVinylSystem
             }
             RequestSerialization();
             ApplyPool();
-            for (int i = 0; i < displayDiscs.Length; i++)
-            {
-                int id = poolDiscs.Length + i;
-                if (Utilities.IsValid(displayDiscs[i]) && !IsDiscInUse(id) && IsAway(i)) displayDiscs[i].ReturnHome();
-            }
             lastSpawnResult = SPAWN_OK;
             Broadcast("_MVSDiscsChanged");
         }
 
         public void _ResetAll() { ResetAll(); }
+
+        /// <summary>Separate from <see cref="ResetAll"/>: sends every display record that is away (and not in use) home.</summary>
+        public void ResetDisplayRecords()
+        {
+            Initialize();
+            for (int i = 0; i < displayDiscs.Length; i++)
+            {
+                int id = poolDiscs.Length + i;
+                if (Utilities.IsValid(displayDiscs[i]) && !IsBusy(id) && IsAway(i)) displayDiscs[i].ReturnHome();
+            }
+        }
+
+        public void _ResetDisplayRecords() { ResetDisplayRecords(); }
 
         /// <summary>Puts one pool record away (e.g. after it was ejected). Display records go home instead.</summary>
         public void ReturnDisc(int discId)
