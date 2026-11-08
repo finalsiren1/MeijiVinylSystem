@@ -91,6 +91,10 @@ namespace MeijiVinylSystem.Editor
             var genres = new int[albumCount];
             var coverPage = new int[albumCount];
             var coverRect = new Vector4[albumCount];
+            var backPage = new int[albumCount];
+            var backRect = new Vector4[albumCount];
+            var labelPage = new int[albumCount];
+            var labelRect = new Vector4[albumCount];
             var trackStart = new int[albumCount];
             var trackCount = new int[albumCount];
             var trackTitles = new string[trackTotal];
@@ -105,9 +109,15 @@ namespace MeijiVinylSystem.Editor
                 artists[a] = album.artist ?? "";
                 years[a] = album.year;
                 genres[a] = data.GenreIndex(album.genreId);
-                bool hasCover = album.cover != null && album.coverPage >= 0 && album.coverPage < data.coverPages.Count;
+                bool hasCover = album.coverPage >= 0 && album.coverPage < data.coverPages.Count;
                 coverPage[a] = hasCover ? album.coverPage : -1;
                 coverRect[a] = hasCover ? album.coverRect : Vector4.zero;
+                bool hasBack = album.backPage >= 0 && album.backPage < data.backPages.Count;
+                backPage[a] = hasBack ? album.backPage : -1;
+                backRect[a] = hasBack ? album.backRect : Vector4.zero;
+                bool hasLabel = album.labelPage >= 0 && album.labelPage < data.labelPages.Count;
+                labelPage[a] = hasLabel ? album.labelPage : -1;
+                labelRect[a] = hasLabel ? album.labelRect : Vector4.zero;
                 trackStart[a] = t;
                 trackCount[a] = album.tracks.Count;
                 foreach (MVSTrack track in album.tracks)
@@ -129,6 +139,12 @@ namespace MeijiVinylSystem.Editor
             library.coverPages = data.coverPages.ToArray();
             library.albumCoverPage = coverPage;
             library.albumCoverRect = coverRect;
+            library.backPages = data.backPages.ToArray();
+            library.albumBackPage = backPage;
+            library.albumBackRect = backRect;
+            library.labelPages = data.labelPages.ToArray();
+            library.albumLabelPage = labelPage;
+            library.albumLabelRect = labelRect;
             library.albumTrackStart = trackStart;
             library.albumTrackCount = trackCount;
             library.trackTitles = trackTitles;

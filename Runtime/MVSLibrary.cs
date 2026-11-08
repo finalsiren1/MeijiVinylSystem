@@ -27,6 +27,12 @@ namespace MeijiVinylSystem
         [HideInInspector] public Texture2D[] coverPages = new Texture2D[0];
         [HideInInspector] public int[] albumCoverPage = new int[0];
         [HideInInspector] public Vector4[] albumCoverRect = new Vector4[0];
+        [HideInInspector] public Texture2D[] backPages = new Texture2D[0];
+        [HideInInspector] public int[] albumBackPage = new int[0];
+        [HideInInspector] public Vector4[] albumBackRect = new Vector4[0];
+        [HideInInspector] public Texture2D[] labelPages = new Texture2D[0];
+        [HideInInspector] public int[] albumLabelPage = new int[0];
+        [HideInInspector] public Vector4[] albumLabelRect = new Vector4[0];
         [HideInInspector] public int[] albumTrackStart = new int[0];
         [HideInInspector] public int[] albumTrackCount = new int[0];
 
@@ -89,6 +95,34 @@ namespace MeijiVinylSystem
         }
 
         public bool HasCover(int album) { return IsValidAlbum(album) && albumCoverPage[album] >= 0; }
+
+        /// <summary>Back cover atlas page (sleeve back), or null.</summary>
+        public Texture2D GetBackPage(int album)
+        {
+            if (!IsValidAlbum(album) || album >= albumBackPage.Length) return null;
+            int page = albumBackPage[album];
+            return page >= 0 && page < backPages.Length ? backPages[page] : null;
+        }
+
+        public Vector4 GetBackRect(int album)
+        {
+            if (!IsValidAlbum(album) || album >= albumBackPage.Length || albumBackPage[album] < 0) return Vector4.zero;
+            return albumBackRect[album];
+        }
+
+        /// <summary>Record label atlas page, or null (then use the front cover on the label).</summary>
+        public Texture2D GetLabelPage(int album)
+        {
+            if (!IsValidAlbum(album) || album >= albumLabelPage.Length) return null;
+            int page = albumLabelPage[album];
+            return page >= 0 && page < labelPages.Length ? labelPages[page] : null;
+        }
+
+        public Vector4 GetLabelRect(int album)
+        {
+            if (!IsValidAlbum(album) || album >= albumLabelPage.Length || albumLabelPage[album] < 0) return Vector4.zero;
+            return albumLabelRect[album];
+        }
 
         /// <summary>"Artist - Title", or just the title when the artist is empty.</summary>
         public string GetDisplayName(int album)

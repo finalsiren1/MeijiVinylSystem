@@ -29,7 +29,7 @@ namespace MeijiVinylSystem
         [Tooltip("Where records appear when spawned from the album menu.")]
         [SerializeField] private Transform spawnPoint;
         [Tooltip("After spawning, the record glides this far out of the spawn point along its face (m). 0 = no motion.")]
-        [SerializeField] private float spawnPopDistance = 0.12f;
+        [SerializeField] private float spawnPopDistance = 0.04f;
         [SerializeField, Min(0.05f)] private float spawnPopTime = 0.45f;
 
         [Header("Records")]
@@ -51,6 +51,7 @@ namespace MeijiVinylSystem
 
         [UdonSynced] private int[] poolAlbum = new int[0];
         [UdonSynced] private int[] poolSpawnTime = new int[0];
+        [UdonSynced] private int lastSpawnSlot = -1;
 
         private float[] idleTime = new float[0];        // local, owner uses it
         private Vector3[] displayHome = new Vector3[0];
@@ -176,6 +177,9 @@ namespace MeijiVinylSystem
             }
 
             TakeOwnership();
+            // The previous record nobody took out of the spawn point goes back first (one record waits at a time).
+            if (lastSpawnSlot >= 0 && lastSpawnSlot < poolAlbum.Length && poolAlbum[lastSpawnSlot] >= 0 && IsUntouchedAtSpawn(lastSpawnSlot))
+                poolAlbum[lastSpawnSlot] = -1;
             if (CountActive() >= softLimit)
             {
                 int recycle = FindRecyclable();
@@ -192,6 +196,7 @@ namespace MeijiVinylSystem
 
             poolAlbum[slot] = album;
             poolSpawnTime[slot] = Networking.GetServerTimeInMilliseconds();
+            lastSpawnSlot = slot;
             idleTime[slot] = 0f;
             RequestSerialization();
             ApplyPool();
@@ -297,6 +302,16 @@ namespace MeijiVinylSystem
                     displayDiscs[i].ReturnHome();
                 }
             }
+        }
+
+        /// <summary>Still waiting where it spawned (not held, not moved away, not in a player).</summary>
+        private bool IsUntouchedAtSpawn(int slot)
+        {
+            MVSDisc d = poolDiscs[slot];
+            if (!Utilities.IsValid(d) || !Utilities.IsValid(spawnPoint) || IsBusy(slot)) return false;
+            Vector3 rest = spawnPoint.position + spawnPoint.up * spawnPopDistance;
+            return Vector3.Distance(d.transform.position, rest) < 0.06f
+                || Vector3.Distance(d.transform.position, spawnPoint.position) < 0.06f;
         }
 
         private bool IsBusy(int discId)

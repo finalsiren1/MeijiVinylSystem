@@ -216,6 +216,7 @@ namespace MeijiVinylSystem.Editor
                     int year = EditorGUILayout.IntField(new GUIContent("Year", "0 = unknown"), album.year);
                     int genre = EditorGUILayout.IntPopup("Genre", data.GenreIndex(album.genreId), GenreNamesWithUnsorted(), GenreValuesWithUnsorted());
                     var cover = (Texture2D)EditorGUILayout.ObjectField("Cover", album.cover, typeof(Texture2D), false);
+                    var sleeve = (Texture2D)EditorGUILayout.ObjectField(new GUIContent("Sleeve Texture (2x2)", "Optional: front TL, back TR, label BL, vinyl BR. Overrides Cover."), album.sleeve, typeof(Texture2D), false);
                     if (EditorGUI.EndChangeCheck())
                     {
                         Record("Edit Album");
@@ -224,12 +225,14 @@ namespace MeijiVinylSystem.Editor
                         album.year = Mathf.Max(0, year);
                         album.genreId = genre >= 0 ? data.genres[genre].id : "";
                         album.cover = cover;
+                        album.sleeve = sleeve;
                     }
                     using (new EditorGUI.DisabledScope(true))
                         EditorGUILayout.TextField(new GUIContent("Id", "Stable id used by records in the scene."), album.id);
                 }
                 Rect preview = GUILayoutUtility.GetRect(110, 110, GUILayout.Width(110), GUILayout.Height(110));
-                if (album.cover != null) GUI.DrawTexture(preview, album.cover, ScaleMode.ScaleToFit);
+                if (album.sleeve != null) GUI.DrawTextureWithTexCoords(preview, album.sleeve, new Rect(0f, 0.5f, 0.5f, 0.5f));
+                else if (album.cover != null) GUI.DrawTexture(preview, album.cover, ScaleMode.ScaleToFit);
                 else GUI.Box(preview, "No cover");
             }
 
@@ -357,8 +360,8 @@ namespace MeijiVinylSystem.Editor
             DrawCoverAtlas();
         }
 
-        private static readonly int[] CoverSizes = { 128, 256, 512 };
-        private static readonly string[] CoverSizeNames = { "128 px", "256 px (recommended)", "512 px" };
+        private static readonly int[] CoverSizes = { 128, 256, 512, 1024 };
+        private static readonly string[] CoverSizeNames = { "128 px", "256 px", "512 px", "1024 px" };
 
         private void DrawCoverAtlas()
         {
@@ -366,13 +369,15 @@ namespace MeijiVinylSystem.Editor
             {
                 EditorGUILayout.LabelField("Cover Atlas", EditorStyles.boldLabel);
                 EditorGUI.BeginChangeCheck();
-                int size = EditorGUILayout.IntPopup("Cover Size", data.coverSize, CoverSizeNames, CoverSizes);
-                if (EditorGUI.EndChangeCheck()) { Record("Cover Size"); data.coverSize = size; }
+                int size = EditorGUILayout.IntPopup("Front Cover Size", data.coverSize, CoverSizeNames, CoverSizes);
+                int back = EditorGUILayout.IntPopup("Back Cover Size", data.backSize, CoverSizeNames, CoverSizes);
+                int label = EditorGUILayout.IntPopup("Label Size", data.labelSize, CoverSizeNames, CoverSizes);
+                if (EditorGUI.EndChangeCheck()) { Record("Atlas Sizes"); data.coverSize = size; data.backSize = back; data.labelSize = label; }
 
                 bool upToDate = MVSCoverAtlasBuilder.IsUpToDate(data);
                 int pages = data.coverPages.Count;
                 EditorGUILayout.LabelField(upToDate
-                        ? $"Up to date · {pages} page(s) in {MVSCoverAtlasBuilder.PagesFolder(data)}"
+                        ? $"Up to date · front {pages}, back {data.backPages.Count}, label {data.labelPages.Count} page(s) in {MVSCoverAtlasBuilder.PagesFolder(data)}"
                         : "Out of date (covers changed). Rebuilds automatically before Play / Build.",
                     EditorStyles.miniLabel);
                 using (new EditorGUILayout.HorizontalScope())
@@ -401,7 +406,7 @@ namespace MeijiVinylSystem.Editor
             if (string.IsNullOrWhiteSpace(album.artist)) list.Add("Artist is empty.");
             if (album.year <= 0) list.Add("Year is unknown.");
             if (string.IsNullOrEmpty(album.genreId)) list.Add("No genre (Unsorted).");
-            if (album.cover == null) list.Add("No cover.");
+            if (album.cover == null && album.sleeve == null) list.Add("No cover.");
             if (album.tracks.Count == 0) list.Add("No tracks.");
             for (int i = 0; i < album.tracks.Count; i++)
             {

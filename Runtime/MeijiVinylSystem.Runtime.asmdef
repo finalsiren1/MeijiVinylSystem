@@ -5,6 +5,7 @@
         "UnityEngine.UI",
         "Unity.TextMeshPro",
         "VRC.Udon",
+        "VRC.Udon.Serialization.OdinSerializer",
         "UdonSharp.Runtime",
         "JLChnToZ.VVMW",
         "JLChnToZ.VRC.Foundation"

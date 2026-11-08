@@ -23,7 +23,7 @@ namespace MeijiVinylSystem.Editor
 
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                if (recordPrefab == null) recordPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MVSAssetBuilder.RecordPrefabPath);
+                if (recordPrefab == null) recordPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MVSAssetBuilder.SleevePrefabPath);
                 recordPrefab = (GameObject)EditorGUILayout.ObjectField("Record Prefab", recordPrefab, typeof(GameObject), false);
                 createCount = EditorGUILayout.IntSlider("Pool Size", createCount, 1, 64);
                 using (new EditorGUI.DisabledScope(recordPrefab == null))

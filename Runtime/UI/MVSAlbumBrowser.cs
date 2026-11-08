@@ -43,6 +43,13 @@ namespace MeijiVinylSystem
         [SerializeField] private Graphic listTabLabel;
         [SerializeField] private bool startInList;
 
+        [Header("Drag to change page")]
+        [Tooltip("Horizontal elastic ScrollRect whose content holds the grid and list (content same size as the viewport). " +
+                 "Its onValueChanged → _OnPageDrag. Dragging past the threshold flips the page.")]
+        [SerializeField] private ScrollRect pageScroller;
+        [Tooltip("How far the content must be pulled (canvas units) to flip a page.")]
+        [SerializeField, Min(5)] private float dragThreshold = 60f;
+
         [Header("Search")]
         [SerializeField] private TMP_InputField searchField;
         [SerializeField] private GameObject clearSearchButton;
@@ -191,6 +198,21 @@ namespace MeijiVinylSystem
             listView = value;
             page = first / PageSize();
             ShowPage(true);
+        }
+
+        private bool dragLatched;
+
+        /// <summary>ScrollRect onValueChanged: pull left = next page, pull right = previous page.</summary>
+        public void _OnPageDrag()
+        {
+            if (!Utilities.IsValid(pageScroller) || !Utilities.IsValid(pageScroller.content)) return;
+            float x = pageScroller.content.anchoredPosition.x;
+            if (!dragLatched)
+            {
+                if (x < -dragThreshold && page < PageCount() - 1) { dragLatched = true; _NextPage(); }
+                else if (x > dragThreshold && page > 0) { dragLatched = true; _PrevPage(); }
+            }
+            else if (Mathf.Abs(x) < dragThreshold * 0.3f) dragLatched = false;
         }
 
         public void _PrevPage() { if (page > 0) { page--; ShowPage(true); } }

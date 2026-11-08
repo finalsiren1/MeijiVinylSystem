@@ -18,10 +18,16 @@ namespace MeijiVinylSystem
         public List<MVSAlbum> albums = new List<MVSAlbum>();
 
         [Header("Cover Atlas (generated)")]
-        [Tooltip("Pixel size of one cover in the atlas. 256 is plenty for record labels and menu thumbnails.")]
+        [Tooltip("Pixel size of one front cover in the atlas (menu thumbnails, sleeve fronts).")]
         public int coverSize = 256;
-        [Tooltip("Generated atlas pages. Rebuilt automatically when covers change (before Play / Build).")]
+        [Tooltip("Pixel size of one back cover (sleeve backs).")]
+        public int backSize = 256;
+        [Tooltip("Pixel size of one record label (center of the vinyl on the platter).")]
+        public int labelSize = 256;
+        [Tooltip("Generated front cover atlas pages. Rebuilt automatically when covers change (before Play / Build).")]
         public List<Texture2D> coverPages = new List<Texture2D>();
+        public List<Texture2D> backPages = new List<Texture2D>();
+        public List<Texture2D> labelPages = new List<Texture2D>();
         [HideInInspector] public string coverAtlasHash = "";
 
         public MVSGenre FindGenre(string genreId)
@@ -69,9 +75,17 @@ namespace MeijiVinylSystem
         [Tooltip("0 = unknown")]
         public int year;
         public string genreId;
+        [Tooltip("Front cover image (used when there is no Sleeve Texture).")]
         public Texture2D cover;
+        [Tooltip("Optional full sleeve texture laid out 2x2: front cover (top-left), back cover (top-right), " +
+                 "record label (bottom-left), vinyl (bottom-right, unused). Overrides Cover when set.")]
+        public Texture2D sleeve;
         [HideInInspector] public int coverPage = -1;   // generated: atlas page, -1 = no cover
         [HideInInspector] public Vector4 coverRect;    // generated: atlas UV rect (x, y, width, height)
+        [HideInInspector] public int backPage = -1;
+        [HideInInspector] public Vector4 backRect;
+        [HideInInspector] public int labelPage = -1;
+        [HideInInspector] public Vector4 labelRect;
         public List<MVSTrack> tracks = new List<MVSTrack>();
         [Tooltip("Editor-only note (e.g. import warnings). Not baked.")]
         public string note;

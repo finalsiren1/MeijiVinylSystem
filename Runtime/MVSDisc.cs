@@ -6,7 +6,8 @@ using VRC.SDKBase;
 namespace MeijiVinylSystem
 {
     /// <summary>
-    /// One physical record (pickup). Lives on the same GameObject as a VRCPickup + VRCObjectSync, so it does not
+    /// One physical record in its album sleeve (pickup). Only the sleeve is shown; the vinyl itself appears on a
+    /// turntable platter while it plays (the sleeve then waits at the turntable's eject point). Lives on the same GameObject as a VRCPickup + VRCObjectSync, so it does not
     /// sync variables itself (Manual sync cannot share a GameObject with VRCObjectSync). Which album a pool record
     /// shows is synced by <see cref="MVSDiscManager"/>; position is synced by VRCObjectSync.
     ///
@@ -23,10 +24,15 @@ namespace MeijiVinylSystem
         public string fixedAlbumId = "";
 
         [Header("Visual")]
-        [Tooltip("Renderer whose material has the cover texture property (MeijiVinylSystem/Vinyl Record shader).")]
+        [Tooltip("Renderer of the sleeve (MeijiVinylSystem/Record Sleeve shader).")]
         [SerializeField] private Renderer coverRenderer;
+        [Tooltip("Pool sleeves: show the album's front/back art from the library atlases. " +
+                 "Turn off for display sleeves that keep their own material.")]
+        [SerializeField] private bool applyLibraryArt = true;
         [SerializeField] private string coverProperty = "_CoverTex";
         [SerializeField] private string coverRectProperty = "_CoverRect";
+        [SerializeField] private string backProperty = "_BackTex";
+        [SerializeField] private string backRectProperty = "_BackRect";
 
         [Header("Components (auto-filled when empty)")]
         [SerializeField] private VRCPickup pickup;
@@ -66,7 +72,7 @@ namespace MeijiVinylSystem
         public void SetAlbum(int albumIndex, MVSLibrary library)
         {
             album = albumIndex;
-            if (!Utilities.IsValid(coverRenderer)) return;
+            if (!applyLibraryArt || !Utilities.IsValid(coverRenderer)) return;
             if (block == null) block = new MaterialPropertyBlock();
             coverRenderer.GetPropertyBlock(block);
             Texture2D page = Utilities.IsValid(library) ? library.GetCoverPage(albumIndex) : null;
@@ -76,6 +82,13 @@ namespace MeijiVinylSystem
                 block.SetVector(coverRectProperty, library.GetCoverRect(albumIndex));
             }
             else block.SetVector(coverRectProperty, Vector4.zero);
+            Texture2D back = Utilities.IsValid(library) ? library.GetBackPage(albumIndex) : null;
+            if (Utilities.IsValid(back))
+            {
+                block.SetTexture(backProperty, back);
+                block.SetVector(backRectProperty, library.GetBackRect(albumIndex));
+            }
+            else block.SetVector(backRectProperty, Vector4.zero);
             coverRenderer.SetPropertyBlock(block);
         }
 
@@ -131,15 +144,13 @@ namespace MeijiVinylSystem
         }
 
         /// <summary>
-        /// Hides the record while a turntable shows its own copy on the platter (local, every client calls it
-        /// from the turntable events). Hidden = no renderer, no collider, not pickupable.
+        /// The record is out of this sleeve, playing on a turntable: the empty sleeve waits next to the deck
+        /// and can't be picked up until the record comes back (local, every client calls it from turntable events).
         /// </summary>
         public void SetParked(bool value)
         {
             parked = value;
             EnsureComponents();
-            if (Utilities.IsValid(coverRenderer)) coverRenderer.enabled = !value;
-            if (Utilities.IsValid(discCollider)) discCollider.enabled = !value;
             SetLocked(value);
         }
 

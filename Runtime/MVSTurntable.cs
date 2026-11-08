@@ -10,8 +10,8 @@ namespace MeijiVinylSystem
     /// sequence; nothing is synced here. Works with any model: assign the platter and tonearm transforms and
     /// tune the angles/axes (tonearm angles are relative to the tonearm's pose in the scene).
     ///
-    /// Insert: hold a record and touch this GameObject's trigger collider. The record is parked at
-    /// <see cref="ejectPoint"/> (hidden) while a copy (<see cref="recordVisual"/>) drops onto the platter.
+    /// Insert: hold a record sleeve and touch this GameObject's trigger collider. The empty sleeve is laid at
+    /// <see cref="ejectPoint"/> (not pickupable) while the vinyl (<see cref="recordVisual"/>) drops onto the platter.
     /// Sequence: record drops → platter spins up → tonearm swings over and lowers (needle-drop sound) → music
     /// (the player's Start Delay should be ≥ dropTime + armMoveTime + lowerTime). Eject reverses it and the
     /// real record reappears at <see cref="ejectPoint"/>, free to pick up (it returns home after the idle time).
@@ -71,6 +71,8 @@ namespace MeijiVinylSystem
         [Header("Shader properties")]
         [SerializeField] private string coverProperty = "_CoverTex";
         [SerializeField] private string coverRectProperty = "_CoverRect";
+        [SerializeField] private string labelProperty = "_LabelTex";
+        [SerializeField] private string labelRectProperty = "_LabelRect";
 
         private const int SEQ_NONE = 0, SEQ_INSERT = 1, SEQ_EJECT = 2;
 
@@ -118,7 +120,7 @@ namespace MeijiVinylSystem
             }
             int album = disc.GetAlbum();
             int id = disc.GetDiscId();
-            disc.TeleportTo(ejectPoint); // drops it and parks it next to the deck (hidden while playing)
+            disc.TeleportTo(ejectPoint); // drops it and lays the empty sleeve next to the deck
             player.InsertRecord(album, id);
         }
 
@@ -285,6 +287,13 @@ namespace MeijiVinylSystem
                 block.SetVector(coverRectProperty, library.GetCoverRect(album));
             }
             else block.SetVector(coverRectProperty, Vector4.zero);
+            Texture2D label = Utilities.IsValid(library) ? library.GetLabelPage(album) : null;
+            if (Utilities.IsValid(label))
+            {
+                block.SetTexture(labelProperty, label);
+                block.SetVector(labelRectProperty, library.GetLabelRect(album));
+            }
+            else block.SetVector(labelRectProperty, Vector4.zero);
             recordVisual.SetPropertyBlock(block);
         }
 
