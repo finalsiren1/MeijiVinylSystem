@@ -64,6 +64,10 @@ namespace MeijiVinylSystem
         [SerializeField] private string endedText = "End of record";
         [SerializeField] private string trackFormat = "Track {0} of {1}";
         [SerializeField] private string ejectText = "Eject";
+        [Tooltip("Booth players, seen by everyone except the listener.")]
+        [SerializeField] private string boothListenerFormat = "{0} is listening";
+        [Tooltip("Hidden for people who can't control this player (booth spectators).")]
+        [SerializeField] private GameObject controls;
 
         private bool settingSeek;
         private bool loopRunning;
@@ -196,8 +200,10 @@ namespace MeijiVinylSystem
         private void RefreshStatus()
         {
             if (!Utilities.IsValid(statusText)) return;
+            if (Utilities.IsValid(controls)) controls.SetActive(player.CanControl());
             string s;
-            if (player.GetState() == MVSPlayer.STATE_STARTING) s = droppingText;
+            if (player.IsBooth() && !player.CanControl()) s = string.Format(boothListenerFormat, player.GetListenerName());
+            else if (player.GetState() == MVSPlayer.STATE_STARTING) s = droppingText;
             else if (player.IsLoading()) s = loadingText;
             else if (player.IsPaused()) s = pausedText;
             else if (player.IsPlaying()) s = playingText;

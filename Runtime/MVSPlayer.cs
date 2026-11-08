@@ -41,6 +41,11 @@ namespace MeijiVinylSystem
         [Tooltip("Seconds from placing a record to the needle drop (audio starts). Match the turntable animation.")]
         [SerializeField, Min(0)] private float startDelay = 2.5f;
 
+        [Header("Local Booth (optional)")]
+        [Tooltip("Set for a listening booth: only the person wearing the booth headphones can operate this player, " +
+                 "and its VizVid Core must have 'Synced' OFF so only they hear it. Everyone still sees the record state.")]
+        [SerializeField] private MVSBooth booth;
+
         [Header("Listeners")]
         [Tooltip("Turntable, UI, etc. They receive the _MVS* events listed in the class summary.")]
         [SerializeField] private UdonSharpBehaviour[] listeners = new UdonSharpBehaviour[0];
@@ -115,8 +120,20 @@ namespace MeijiVinylSystem
             return Mathf.Max(0f, actionCooldown - elapsed);
         }
 
-        public bool CanInsert() { return state == STATE_EMPTY && GetCooldownRemaining() <= 0f; }
-        public bool CanEject() { return state != STATE_EMPTY && GetCooldownRemaining() <= 0f; }
+        public bool CanInsert() { return CanControl() && state == STATE_EMPTY && GetCooldownRemaining() <= 0f; }
+        public bool CanEject() { return CanControl() && state != STATE_EMPTY && GetCooldownRemaining() <= 0f; }
+
+        /// <summary>Booth players: only the headphone wearer may operate it. Global players: everyone.</summary>
+        public bool CanControl() { return !Utilities.IsValid(booth) || booth.IsLocalWearer(); }
+        public bool IsBooth() { return Utilities.IsValid(booth); }
+        public MVSBooth GetBooth() { return booth; }
+
+        /// <summary>Who is operating / listening (record player owner).</summary>
+        public string GetListenerName()
+        {
+            VRCPlayerApi owner = Networking.GetOwner(gameObject);
+            return Utilities.IsValid(owner) ? owner.displayName : "";
+        }
 
         // =========================================================================================
         // Actions (call locally; the caller becomes owner)
@@ -144,6 +161,18 @@ namespace MeijiVinylSystem
         public bool Eject()
         {
             if (!CanEject()) return false;
+            return EjectInternal();
+        }
+
+        /// <summary>Eject ignoring the cooldown and booth gate (e.g. headphones taken off, listener left).</summary>
+        public void ForceEject()
+        {
+            if (state == STATE_EMPTY) return;
+            EjectInternal();
+        }
+
+        private bool EjectInternal()
+        {
             TakeOwnership();
             if (Utilities.IsValid(core)) core.Stop();
             album = -1;
@@ -159,6 +188,7 @@ namespace MeijiVinylSystem
 
         public void Next()
         {
+            if (!CanControl()) return;
             if (state != STATE_PLAYING || !IsMultiTrack()) return;
             int count = GetTrackCount();
             int next = track + 1;
@@ -172,6 +202,7 @@ namespace MeijiVinylSystem
 
         public void Previous()
         {
+            if (!CanControl()) return;
             if (state != STATE_PLAYING || !IsMultiTrack()) return;
             // Like a CD player: restart the current track if we're more than 3 s in.
             if (Utilities.IsValid(core) && core.Time > 3f)
@@ -190,6 +221,7 @@ namespace MeijiVinylSystem
 
         public void PlayTrack(int trackIndex)
         {
+            if (!CanControl()) return;
             if (state != STATE_PLAYING) return;
             if (trackIndex < 0 || trackIndex >= GetTrackCount()) return;
             ChangeTrack(trackIndex);
@@ -197,6 +229,7 @@ namespace MeijiVinylSystem
 
         public void TogglePause()
         {
+            if (!CanControl()) return;
             if (state != STATE_PLAYING || !Utilities.IsValid(core)) return;
             if (core.IsPaused) core.Play();
             else if (core.IsPlaying) core.Pause();
@@ -206,23 +239,27 @@ namespace MeijiVinylSystem
 
         public void Pause()
         {
+            if (!CanControl()) return;
             if (state == STATE_PLAYING && Utilities.IsValid(core) && core.IsPlaying) core.Pause();
         }
 
         public void Resume()
         {
+            if (!CanControl()) return;
             if (state == STATE_PLAYING && Utilities.IsValid(core) && core.IsPaused) core.Play();
         }
 
         /// <summary>Seek to a 0..1 position of the current track.</summary>
         public void Seek(float progress)
         {
+            if (!CanControl()) return;
             if (state != STATE_PLAYING || !Utilities.IsValid(core)) return;
             core.Progress = Mathf.Clamp01(progress);
         }
 
         public void SetLoop(bool value)
         {
+            if (!CanControl()) return;
             if (loop == value) return;
             TakeOwnership();
             loop = value;
@@ -330,6 +367,12 @@ namespace MeijiVinylSystem
         public override void OnOwnershipTransferred(VRCPlayerApi player)
         {
             if (takingOwnership || !Utilities.IsValid(player) || !player.isLocal) return;
+            // Booth: the listener left, free the booth.
+            if (Utilities.IsValid(booth))
+            {
+                if (state != STATE_EMPTY) EjectInternal();
+                return;
+            }
             // The previous owner left while a record was dropping: finish the job here.
             if (state == STATE_STARTING)
             {

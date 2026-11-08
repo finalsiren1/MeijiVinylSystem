@@ -72,6 +72,9 @@ namespace MeijiVinylSystem
         [SerializeField] private string resetText = "Records put away";
         [SerializeField] private string playingLabel = "Playing";
         [SerializeField] private string outLabel = "Out";
+        [Tooltip("Status of an album playing in a listening booth: {0} = listener name.")]
+        [SerializeField] private string boothLabelFormat = "{0}";
+        [SerializeField] private Color boothColor = new Color(0.706f, 0.549f, 1f, 1f);
         [SerializeField] private string resultsFormat = "{0} albums";
         [SerializeField] private string recordsOutFormat = "{0} of {1} records out";
         [SerializeField, Min(1)] private float noticeSeconds = 4f;
@@ -265,19 +268,21 @@ namespace MeijiVinylSystem
         {
             int a = cell.GetAlbum();
             if (a < 0) return;
-            if (IsPlaying(a)) cell.SetStatus(playingLabel, playingColor, true);
+            MVSPlayer p = PlayerWith(a);
+            if (Utilities.IsValid(p) && p.IsBooth()) cell.SetStatus(string.Format(boothLabelFormat, p.GetListenerName()), boothColor, true);
+            else if (Utilities.IsValid(p)) cell.SetStatus(playingLabel, playingColor, true);
             else if (Utilities.IsValid(discs) && discs.FindPoolDiscWithAlbum(a) >= 0) cell.SetStatus(outLabel, outColor, true);
             else cell.SetStatus("", textDimColor, false);
         }
 
-        private bool IsPlaying(int album)
+        private MVSPlayer PlayerWith(int album)
         {
             for (int i = 0; i < players.Length; i++)
             {
                 MVSPlayer p = players[i];
-                if (Utilities.IsValid(p) && p.HasRecord() && p.GetAlbum() == album) return true;
+                if (Utilities.IsValid(p) && p.HasRecord() && p.GetAlbum() == album) return p;
             }
-            return false;
+            return null;
         }
 
         private void RefreshStatuses()
